@@ -9,7 +9,6 @@
 	c_y: .ascii "0"		// Lo usamos para imprimir la coordenada y.
 
 .text
-.global main
 
 	/* Imprime la matriz del mapa de manera bonita.
 	inputs: mat_mapa
@@ -88,7 +87,8 @@
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 		.fnend
-
+	
+	.global main
 	main:
 		bl imprMapa
 
