@@ -32,22 +32,22 @@
 
 		// Ciclo para imprimir filas.
 		ciclo_y:
-			ldr r0, =cr
+			ldr r1, =cr
 			bl imprChar	// Imprimimos un salto de línea.
 
 			// Cargamos el valor ascii de la coordenada y en c_y.
 			strb r3, [r5]
 			// Imprimimos el número de la coordenada y.
-			mov r0, r5
+			mov r1, r5
 			bl imprChar
 
 			// Ciclo para imprimir caracteres individuales por columna.
 			mov r6, #0		// Guardamos la cantidad de caracteres que imprimimos esta fila.
 			ciclo_x:
-				ldr r0, =spc
+				ldr r1, =spc
 				bl imprChar	// Imprimimos un espacio.
 
-				mov r0, r4	// Imprimimos el caracter del mapa que sigue:
+				mov r1, r4	// Imprimimos el caracter del mapa que sigue:
 				bl imprChar
 
 				add r6, #1
@@ -63,7 +63,7 @@
 			cmp r3, #0x3a
 			blt ciclo_y 
 
-		ldr r0, =cr
+		ldr r1, =cr
 		bl imprChar	// Ultimo salto de linea antes de salir del procedimiento.
 
 		pop {r0, r1, r2, r3, r4, r5, r7, lr}
@@ -72,12 +72,12 @@
 
 	/* Imprime un unico caracter
 	inputs: 
-		r0: posición en memoria del caracter a imprimir.
+		r1: posición en memoria del caracter a imprimir.
 	outputs: - */
 	imprChar:
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
-		mov r1, r0		// Posición del caracter a imprimir.
+		// mov r1, r1 -> posición en memoria del caracter a imprimir viene por input.
 
 		mov r7, #4
 		mov r0, #1
@@ -87,7 +87,7 @@
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 		.fnend
-	
+
 	.global main
 	main:
 		bl imprMapa
