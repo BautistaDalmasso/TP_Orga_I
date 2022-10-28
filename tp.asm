@@ -2,14 +2,15 @@
 	mat_revelada: .ascii "  #   #     (   )        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
 
-	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"
+	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
 
 	cr: .ascii "\n"		// Carriage return, guardamos el salto de linea.
 	spc: .ascii " "		// Espacio para imprimir.
 	c_y: .ascii "0"		// Lo usamos para imprimir la coordenada y.
 
+	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
+
 .text
-.global main
 
 	/* Imprime la matriz del mapa de manera bonita.
 	inputs: mat_mapa
@@ -21,34 +22,31 @@
 		ldr r5, =c_y	// Posición de la coordenada y para imprimir.
 		ldr r4, =mat_mapa // Posición del caracter del mapa a imprimir.
 
+		// Imprimir eje x.
 		ldr r1, =cords_x // Lista de coordenadas x para imprimir.
-
-		// Imprimir cords_x
-		mov r7, #4
-		mov r0, #1
-		mov r2, #21
-		swi 0
+		mov r2, #21		 // Tamaño de la cadena.
+		bl imprStr
 
 		mov r3, #0x30	// Coordenada Y en ascii.
 
 		// Ciclo para imprimir filas.
 		ciclo_y:
-			ldr r0, =cr
+			ldr r1, =cr
 			bl imprChar	// Imprimimos un salto de línea.
 
 			// Cargamos el valor ascii de la coordenada y en c_y.
 			strb r3, [r5]
 			// Imprimimos el número de la coordenada y.
-			mov r0, r5
+			mov r1, r5
 			bl imprChar
 
 			// Ciclo para imprimir caracteres individuales por columna.
 			mov r6, #0		// Guardamos la cantidad de caracteres que imprimimos esta fila.
 			ciclo_x:
-				ldr r0, =spc
+				ldr r1, =spc
 				bl imprChar	// Imprimimos un espacio.
 
-				mov r0, r4	// Imprimimos el caracter del mapa que sigue:
+				mov r1, r4	// Imprimimos el caracter del mapa que sigue:
 				bl imprChar
 
 				add r6, #1
@@ -64,8 +62,10 @@
 			cmp r3, #0x3a
 			blt ciclo_y 
 
-		ldr r0, =cr
-		bl imprChar	// Ultimo salto de linea antes de salir del procedimiento.
+		// Imprime un separador.
+		ldr r1, =separador
+		mov r2, #23
+		bl imprStr
 
 		pop {r0, r1, r2, r3, r4, r5, r7, lr}
 		bx lr
@@ -73,12 +73,12 @@
 
 	/* Imprime un unico caracter
 	inputs: 
-		r0: posición en memoria del caracter a imprimir.
+		r1: posición en memoria del caracter a imprimir.
 	outputs: - */
 	imprChar:
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
-		mov r1, r0		// Posición del caracter a imprimir.
+		// mov r1, r1 -> posición en memoria del caracter a imprimir viene por input.
 
 		mov r7, #4
 		mov r0, #1
@@ -89,6 +89,26 @@
 		bx lr
 		.fnend
 
+	/* Imprime una cadena.
+	inputs:
+		r1: posición en memoria de la cadena a imprimir.
+		r2: tamaño de la cadena.
+	outputs: - */
+	imprStr:
+		.fnstart
+		push {r0, r1, r2, r7, lr}
+
+		mov r7, #4
+		mov r0, #1
+		// r2 -> tamaño por input.
+		// r1 -> pos en memoria por input.
+		swi 0
+
+		pop {r0, r1, r2, r7, lr}
+		bx lr
+		.fnend
+
+	.global main
 	main:
 		bl imprMapa
 
