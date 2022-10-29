@@ -108,6 +108,57 @@
 		bx lr
 		.fnend
 
+
+
+	/* Da vuelta una figura en el mapa.
+    inputs:
+		r2: posición x de la figura.
+		r3: posición y de la figura.
+    outputs: - */
+	darVuelta:
+		.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r4, =mat_revelada
+		ldr r5, =mat_mapa
+
+		// Calculamos el número de figura a dar vuelta.
+		bl calcNum
+
+		// Buscamos la posición de esas figuras en las matrices.
+		add r4, r0
+		add r5, r0
+
+		// Buscamos el valor de la figura.
+		ldrb r4, [r4]
+		// Cargamos el valor en la matriz del mapa.
+		strb r4, [r5]
+
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+		.fnend
+
+
+	/* Calcula el número (indice) de figura en las matrices dada una posición x e y.
+	inputs:
+		r2: posición x de la figura.
+		r3: posición y de la figura.
+	outputs:
+		r0: número de la figura. */
+	calcNum:
+		.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+
+		// FORMULA: x + 10*y
+		mov r0, #10
+		// 10*y
+		mul r0, r3
+		// sumamos x:
+		add r0, r2
+
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+		.fnend
+
 	.global main
 	main:
 		bl imprMapa
