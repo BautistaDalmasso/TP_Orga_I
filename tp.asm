@@ -118,20 +118,48 @@
 	darVuelta:
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
-		ldr r4, =mat_revelada
-		ldr r5, =mat_mapa
 
-		// Calculamos el número de figura a dar vuelta.
+		// Calculamos el indice de figura a dar vuelta.
 		bl calcNum
 
-		// Buscamos la posición de esas figuras en las matrices.
-		add r4, r0
-		add r5, r0
+		// Buscamos la figura en el indice calculado.
+		bl buscarFig
+		// Reemplazamos esa figura en el mapa.
+		bl cambiarMapa
 
-		// Buscamos el valor de la figura.
-		ldrb r4, [r4]
-		// Cargamos el valor en la matriz del mapa.
-		strb r4, [r5]
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+		.fnend
+
+	/* Busca una figura en memoria y devuelve el caracter correspondiente.
+	inputs:
+		r0: indice de la figura.
+	outputs:
+		r1: caracter ascii de la figura. */
+	buscarFig:
+		.fnstart
+		push {r0, r2, r3, r4, r5, r6, r7, lr}
+
+		ldr r4, =mat_revelada		// Matriz donde buscaremos la figura.
+		add r4, r0					// Avanzamos en la matriz hasta el indice deseado.
+		ldrb r1, [r4]				// Obtenemos el caracter.
+
+		pop {r0, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+		.fnend
+
+	/* Cambia al caracter deseado en el mapa.
+	inputs:
+		r0: indice del caracter.
+		r1: caracter ascii al que se quiere cambiar.
+	outputs: - */
+	cambiarMapa:
+		.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+
+		ldr r4, =mat_mapa			// Matriz que queremos cambiar.
+		add r4, r0					// Avanzamos en la matriz hasta el indice deseado.
+		strb r1, [r4]				// Guardamos el caracter en la posición.
 
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
@@ -158,6 +186,7 @@
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 		.fnend
+
 
 	.global main
 	main:
