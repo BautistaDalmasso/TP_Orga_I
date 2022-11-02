@@ -188,28 +188,6 @@
 		.fnend
 
 
-	/* Calcula el número (indice) de figura en las matrices dada una posición x e y.
-	inputs:
-		r2: posición x de la figura.
-		r3: posición y de la figura.
-	outputs:
-		r0: número de la figura. */
-	calcNum:
-		.fnstart
-		push {r1, r2, r3, r4, r5, r6, r7, lr}
-
-		// FORMULA: x + 10*y
-		mov r0, #10
-		// 10*y
-		mul r0, r3
-		// sumamos x:
-		add r0, r2
-
-		pop {r1, r2, r3, r4, r5, r6, r7, lr}
-		bx lr
-		.fnend
-
-
 	.global main
 	main:
 		bl imprMapa
