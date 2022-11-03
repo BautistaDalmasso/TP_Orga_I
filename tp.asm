@@ -1,3 +1,5 @@
+/*ESTA BIEN ? */ 
+
 .data
 	mat_revelada: .ascii "  #   #     (   )        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
