@@ -141,8 +141,7 @@
 		push {r0, r2, r3, r4, r5, r6, r7, lr}
 
 		ldr r4, =mat_revelada	// Matriz donde buscaremos la figura.
-		add r4, r0		// Avanzamos en la matriz hasta el indice deseado.
-		ldrb r1, [r4]		// Obtenemos el caracter.
+		ldrb r1, [r4, r0]		// Obtenemos el caracter.
 
 		pop {r0, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
@@ -157,9 +156,8 @@
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 
-		ldr r4, =mat_mapa	// Matriz que queremos cambiar.
-		add r4, r0		// Avanzamos en la matriz hasta el indice deseado.
-		strb r1, [r4]		// Guardamos el caracter en la posición.
+		ldr r4, =mat_mapa		// Matriz que queremos cambiar.
+		strb r1, [r4, r0]		// Guardamos el caracter en la posición.
 
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
