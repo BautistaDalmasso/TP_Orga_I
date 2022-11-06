@@ -9,6 +9,12 @@
 	c_y: .ascii "0"		// Lo usamos para imprimir la coordenada y.
 
 	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
+	
+	/*estadisticas del jugador*/
+        aciertos: .byte 0
+        errores: .byte 0
+        
+
 
 .text
 
@@ -186,6 +192,53 @@
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 		.fnend
+		
+	comparar_caracter:
+                .fnstart
+                push {r1,r2,r8,lr}
+
+                /*r1 almancena el caracter uno, r2 almacena el caracter dos*/
+                cmp r1,r2
+                beq verdadero
+                mov r8,#0
+                bl sale
+        verdadero:
+                mov r8,#1
+        sale:
+                pop {r1,r2,r8,lr}
+                bx lr
+                .fnend
+       
+	
+        /*suma la cantidad de intentos
+        input: -
+        outputs: r10 ->almacena la cantidad de intentos que hizo */
+        sumar_aciertos:
+                .fnstart
+                push {r5,r10,lr}
+
+				ldr r5,=aciertos /*direccion de acierto*/
+                ldrb r10,[r5]  /*se almacena el elemento en r10*/
+                add r10,#1    /*se suma en una unidad el valor de aciertos*/
+                strb r10,[r5] /*envio a memoria el nuevo valor*/
+							
+                pop {r5,r10,lr}
+                bx lr
+                .fnend
+
+        /*suma la cantidad de errores
+        input: -
+        outputs: r10 ->almacena la cantidad de errores que hizo */
+        sumar_errores:
+                .fnstart
+                push {r5,r10,lr}
+                ldr r5,=errores /*direccion de errores*/
+                ldrb r10,[r5]  /*se almacena el elemento en r10*/
+                add r10,#1    /*se suma en una unidad el valor de errores*/
+                strb r10,[r5] /*envio a memoria el nuevo valor*/
+                pop {r5,r10,lr}
+                bx lr
+                .fnend
 
 
 	.global main
