@@ -14,7 +14,7 @@
         intentos: .byte 0
         aciertos: .byte 0
         errores: .byte 0
-        vidas_restantes: 15
+        vidas_restantes: .byte 15
 
 
 .text
