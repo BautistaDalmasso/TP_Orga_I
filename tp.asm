@@ -9,6 +9,13 @@
 	c_y: .ascii "0"		// Lo usamos para imprimir la coordenada y.
 
 	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
+	
+	/*estadisticas del jugador*/
+        intentos: .byte 0
+        aciertos: .byte 0
+        errores: .byte 0
+        vidas_restantes: 15
+
 
 .text
 
