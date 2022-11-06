@@ -18,8 +18,8 @@
 
 //Para pedirCoordenadas 
 
-	input_x:.space 1
-	input_y: .space 1
+	input_x:.space 2
+	input_y: .space 2
 	mensaje_x: .ascii "Ingrese el valor de la coordenada x: "
 	mensaje_y: .ascii "Ingrese el valor de la coordenada y: "
 
@@ -251,11 +251,10 @@
 			//guardo la direccion de la coordenada ascii en r1
 			mov r7,#3
 			mov r0,#0
-			mov r2,#1
+			mov r2,#2
 			//ldr r1,=coordenada
 			swi 0
 			
-
 			//rescato el valor (en ascii), y obtengo su valor
 			ldrb r1,[r1]
 			sub r1,#0x30	// Convertimos de caracter ascii a digito.
@@ -267,43 +266,53 @@
 		input= -
 		output= en r2 coordenada x , en r3 coordenada y
 		*/
-		pedirCoordenadas:
+		pedirCoordenadaX:
 			.fnstart
-			push {r0, r1, r4, r7, lr}
+				push {r0, r1, r3, r4, r5, r6, r7, lr}
+				
+				// Ingresamos mensaje para x.
+				ldr r1,=mensaje_x
+				mov r2,#37
+				bl imprStr
+
+				// Pedimos la coordenada Y.
+				ldr r1, =input_x
+				bl obtenerCoordenada
+
+				mov r2,r1 // En r2 queda la coordenada x.
+				pop {r0, r1, r3, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
 			
-			ldr r1,=mensaje_x
-			mov r2,#37
-			bl imprStr
-
-			ldr r1, =input_x
-			bl obtenerCoordenada
-
-			mov r2,r1 // En r2 queda la coordenada x.
+		pedirCoordenadaY:
+			.fnstart
+				push {r0, r1, r2, r4, r5, r6, r7, lr}
 			
+				// Ingresamos mensaje para y.
+				mov r2,#37
+				ldr r1,=mensaje_y
+				bl imprStr
+				
+				// Pedimos la coordenada Y.
+				ldr r1, =mensaje_y
+				bl obtenerCoordenada
+				mov r3,r1 //en r3 queda la coordenada y.
 
-			//Ingresamos mensaje para y
-			mov r2,#37
-			ldr r1,=mensaje_y
-			bl imprStr
-
-			ldr r1, =input_y
-			bl obtenerCoordenada
-			mov r3,r1 //en r3 queda la coordenada y.
-
-			pop {r0, r1, r4, r7, lr}
-			bx lr
-		.fnend
+				pop {r0, r1, r2, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
 
 
 	.global main
 	main:
 	
-		//bl imprMapa
+		bl imprMapa
 		
-		bl pedirCoordenadas
-
+		// Primera figura del ciclo.
+		// Pedimos las coordenadas:
+		bl pedirCoordenadaX
+		bl pedirCoordenadaY
 		bl darVuelta
-		
 		bl imprMapa
 		
 		salir:
