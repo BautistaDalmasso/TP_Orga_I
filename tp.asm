@@ -198,52 +198,47 @@
 		bx lr
 		.fnend
 		
+	/* Compara dos caracteres y devuelve 1 si son iguales.
+	inputs:
+		r1: caracter a.
+		r2: caracter b.
+	outputs:
+		r0: 1 si son iguales, 0 si no. */
 	comparar_caracter:
-                .fnstart
-                push {r1,r2,r8,lr}
+		.fnstart
+		push {r1,r2,lr}
 
-                /*r1 almancena el caracter uno, r2 almacena el caracter dos*/
-                cmp r1,r2
-                beq verdadero
-                mov r8,#0
-                bl sale
-        verdadero:
-                mov r8,#1
+		/*r1 almancena el caracter uno, r2 almacena el caracter dos*/
+		cmp r1,r2
+		beq verdadero
+		
+		mov r0,#0
+		bl sale
+		
+		verdadero:
+            mov r0,#1
+			
         sale:
-                pop {r1,r2,r8,lr}
-                bx lr
-                .fnend
+			pop {r1,r2,lr}
+			bx lr
+		.fnend
        
 	
-        /*suma la cantidad de intentos
-        input: -
-        outputs: r10 ->almacena la cantidad de intentos que hizo */
-        sumar_aciertos:
-                .fnstart
-                push {r5,r10,lr}
+	/* Suma 1 a un byte en la memoria.
+	input: r0: direccion de memoria del byte.
+	outputs: - */
+	incrementar_y_guardar:
+		.fnstart
+		push {lr}
 
-				ldr r5,=aciertos /*direccion de acierto*/
-                ldrb r10,[r5]  /*se almacena el elemento en r10*/
-                add r10,#1    /*se suma en una unidad el valor de aciertos*/
-                strb r10,[r5] /*envio a memoria el nuevo valor*/
-							
-                pop {r5,r10,lr}
-                bx lr
-                .fnend
+		ldrb r1,[r0]  /*se almacena el byte en r0*/
+		add r1,#1    /*se suma en una unidad el valor-*/
+		strb r1,[r0] /*envio a memoria el nuevo valor*/
+					
+		pop {r1,lr}
+		bx lr
+		.fnend
 
-        /*suma la cantidad de errores
-        input: -
-        outputs: r10 ->almacena la cantidad de errores que hizo */
-        sumar_errores:
-                .fnstart
-                push {r5,r10,lr}
-                ldr r5,=errores /*direccion de errores*/
-                ldrb r10,[r5]  /*se almacena el elemento en r10*/
-                add r10,#1    /*se suma en una unidad el valor de errores*/
-                strb r10,[r5] /*envio a memoria el nuevo valor*/
-                pop {r5,r10,lr}
-                bx lr
-                .fnend
 
 	 /* Guarda la coordenada y luego obtiene el valor de la misma
 		input= -
