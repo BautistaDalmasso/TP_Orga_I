@@ -16,6 +16,13 @@
         
 
 
+//Para pedirCoordenadas 
+
+	coordenada:.ascii " "
+	mensaje_x: .ascii "Ingrese el valor de la coordenada x: "
+	mensaje_y: .ascii "Ingrese el valor de la coordenada y: "
+
+
 .text
 
 	/* Imprime la matriz del mapa de manera bonita.
@@ -240,11 +247,72 @@
                 bx lr
                 .fnend
 
+	 /* Guarda la coordenada y luego obtiene el valor de la misma
+		input= -
+		output= r1 <- valor de la coordenada */
+		obtenerCoordenada:
+		.fnstart
+		push { r0, r2, r3, r4, r5, r6, r7, lr }
+
+		//guardo la direccion de la coordenada ascii en r1
+		mov r7,#3
+		mov r0,#0
+		mov r2,#1
+		ldr r1,=coordenada
+		swi 0
+
+		//rescato el valor (en ascii), y obtengo su valor
+		ldrb r1,[r1]
+		mov r0, #0x30
+		sub r1,r0
+		pop { r0, r2, r3, r4, r5, r6, r7, lr }
+		bx lr
+		.fnend
+
+		/* Solicita coordenada (x,y)  y obtiene el valor de cada coordenada
+		input= -
+		output= en r2 coordenada x , en r3 coordenada y
+		*/
+		pedirCoordenadas:
+		.fnstart
+		push {r0, r1, r4, r7, lr}
+		//Ingresamos mensaje para x
+		mov r7,#4
+		mov r0,#1
+		mov r2,#37
+		ldr r1,=mensaje_x
+		swi 0
+
+		bl obtenerCoordenada
+
+		 mov r6,r1 @en r6 queda el valor que tiene que ir en  r2
+
+
+		//Ingresamos mensaje para y
+
+		mov r7,#4
+		mov r0,#1
+		mov r2,#37
+		ldr r1,=mensaje_y
+		swi 0
+
+		bl obtenerCoordenada
+		mov r5,r1 @en r5 queda el valor de r3
+
+		pop {r0, r1, r4, r7, lr}
+		bx lr
+		.fnend
+
 
 	.global main
 	main:
 		bl imprMapa
-
+		
+	//Con esto se hace el pedido y se pasa a r2 y r3 las coordenadas x e y en valores
+	//bl  pedirCoordenadas
+        //mov r2,r6
+        //mov r3,r5
+	
 
 		salir:
 			mov r7, #1
