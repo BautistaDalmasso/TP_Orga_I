@@ -126,17 +126,13 @@
 
 	/* Da vuelta una figura en el mapa.
    	inputs:
-		r2: posición x de la figura.
-		r3: posición y de la figura.
+		r0: indice de la figura.
 	outputs: - */
 	darVuelta:
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 
-		// Calculamos el indice de figura a dar vuelta.
-		bl calcNum
-
-		// Buscamos la figura en el indice calculado.
+		// Buscamos la figura en el indice indicado.
 		bl buscarFig
 		// Reemplazamos esa figura en el mapa.
 		bl cambiarMapa
@@ -294,7 +290,7 @@
 				bl imprStr
 				
 				// Pedimos la coordenada Y.
-				ldr r1, =mensaje_y
+				ldr r1, =input_y
 				bl obtenerCoordenada
 				mov r3,r1 //en r3 queda la coordenada y.
 
@@ -308,10 +304,22 @@
 	
 		bl imprMapa
 		
-		// Primera figura del ciclo.
+		/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
 		// Pedimos las coordenadas:
 		bl pedirCoordenadaX
 		bl pedirCoordenadaY
+		
+		bl calcNum	// Calculamos el indice de la figura.
+		
+		bl darVuelta
+		bl imprMapa
+		
+		/* ~~~~~~~~~~ Segunda figura del ciclo ~~~~~~~~~~ */
+		bl pedirCoordenadaX
+		bl pedirCoordenadaY
+		
+		bl calcNum	// Calculamos el indice de la figura.
+		
 		bl darVuelta
 		bl imprMapa
 		
