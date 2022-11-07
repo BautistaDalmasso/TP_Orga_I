@@ -11,18 +11,24 @@
 	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
 	
 	/*estadisticas del jugador*/
-        aciertos: .byte 0
-        errores: .byte 0
+	aciertos: .byte 0
+	errores: .byte 0
         
 
 
-//Para pedirCoordenadas 
+	//Para pedirCoordenadas 
 
 	input_x:.space 2
 	input_y: .space 2
 	mensaje_x: .ascii "Ingrese el valor de la coordenada x: "
 	mensaje_y: .ascii "Ingrese el valor de la coordenada y: "
 
+	// Indices de las figuras que fueron dadas vuelta.
+	figura_1: .byte 1
+	figura_2: .byte 1
+	
+	// Mensajes de acierto, fallo, victoria y derrota.
+	m_acierto: .ascii "Acertaste!\n"
 
 .text
 
@@ -301,7 +307,6 @@
 
 	.global main
 	main:
-	
 		bl imprMapa
 		
 		/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
@@ -309,7 +314,9 @@
 		bl pedirCoordenadaX
 		bl pedirCoordenadaY
 		
-		bl calcNum	// Calculamos el indice de la figura.
+		bl calcNum		// Calculamos el indice de la figura.
+		ldr r5, =figura_1
+		strb r0, [r5]	// Guardamos el indice de la primer figura en figura_1.
 		
 		bl darVuelta
 		bl imprMapa
@@ -318,10 +325,40 @@
 		bl pedirCoordenadaX
 		bl pedirCoordenadaY
 		
+		
 		bl calcNum	// Calculamos el indice de la figura.
+		
+		ldr r6, =figura_2
+		strb r0, [r6]	// Guardamos el indice de la segunda figura en figura_2.
 		
 		bl darVuelta
 		bl imprMapa
+		
+		// Comparamos las figuras.
+		ldr r5, =figura_1
+		ldrb r0, [r5]	// Indice figura 1.
+		bl buscarFig	// Buscamos el caracter en sí.
+		push {r1}		// Guardamos el caracter temporalmente.
+
+		ldr r6, =figura_2
+		ldrb r2, [r6]	// Indice figura 2.
+		bl buscarFig
+		
+		mov r2, r1		// Movemos la figura 2 a r2.
+		pop {r1}		// Recuperamos la figura 1.
+		
+		// Comparamos los caracteres.
+		bl comparar_caracter
+		// Vemos si son iguales.
+		cmp r0, #1
+		beq acierto
+		
+		bal salir
+		
+		acierto:
+			mov r2, #11
+			ldr r1, =m_acierto
+			bl imprStr
 		
 		salir:
 			mov r7, #1
