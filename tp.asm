@@ -373,14 +373,17 @@
 				push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 				ldr r0, =nulos
 				
-				// Incrementamos la cantidad de intentos nulos.
-				bl incrementar_y_guardar
-				
 				// Comparamos no pasó del máximo.
-				ldrb r0, [r0]
-				cmp r0, #INM
-				ble tcn
+				ldrb r1, [r0]
+				cmp r1, #INM
+				bge ein
 				
+				// Como no se paso aumentamos la cantidad de intentos nulos.
+				bl incrementar_y_guardar
+				bal tcn
+				
+				// Excedio intentos nulos.
+				ein:
 				// Como se pasó del máximo le sumamos un error.
 				ldr r0, =errores
 				bl incrementar_y_guardar
