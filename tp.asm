@@ -71,7 +71,7 @@
 	pointer_puntaje: .byte 1					// Guarda el inicio del último puntaje en ser cargado.
 	
 	// Guarda los puntajes de forma númerica (en un vector).
-	vector_puntajes: .byte 5
+	vector_puntajes: .zero 5
 	.equ T_VECTOR_PUNTAJES, 5
 	ptr_vector_puntaje: .byte 0					// Puntero del último puntaje en ser cargado.
 	
