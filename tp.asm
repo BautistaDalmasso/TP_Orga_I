@@ -52,6 +52,10 @@
 	.equ T_MENSAJE_DERROTA, 10
 	m_derrota: .ascii "PERDISTE.\n"
 
+	.equ T_MENSAJE_REINICIO, 39
+	m_reinicio: .ascii "¿Quiere iniciar un nuevo juego? (Y/n): "
+	reinicio_respuesta: .ascii "  "
+
 	// Constantes:
 	.equ APV, 5		// Aciertos para victoria.
 	.equ EPD, 15	// Errores para derrota.
@@ -573,94 +577,140 @@
 		.fnend
 
 
+	/* Pregunta al usuario si quiere reiniciar el juego.
+	input: -
+	output: r0 - 1 si hay que reiniciar el juego, 0 si hay que salir.
+	*/
+	consultar_reinicio:
+	.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r3, =m_reinicio
+		ldr r4, =reinicio_respuesta
+		
+		// Muestra consulta de reinicio:
+		mov r1, r3
+		mov r2, #T_MENSAJE_REINICIO
+		bl imprStr
+		
+		// Pide input:
+		mov r7, #3
+		mov r0, #0
+		mov r2, #2
+		mov r1, r4
+		swi 0
+		
+		// Ve si la respuesta es afirmativa.
+		ldrb r1, [r4]
+		cmp r1, #'Y'
+		beq reinicio_afirmativo
+		
+			mov r0, #0
+			bal termina_consultar
+	
+		reinicio_afirmativo:
+			mov r0, #1
+		
+		termina_consultar:
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
 	.global main
 	main:
-		bl imprMapa
-		bl actualizar_informar_valores
-		
-		/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
-		// Pedimos las coordenadas:
-		bl pedirCoordenadaX
-		bl pedirCoordenadaY
-		
-		bl calcNum		// Calculamos el indice de la figura.
-		ldr r5, =figura_1
-		strb r0, [r5]	// Guardamos el indice de la primer figura en figura_1.
-		
-		bl darVuelta
-		bl imprMapa
-		
-		/* ~~~~~~~~~~ Segunda figura del ciclo ~~~~~~~~~~ */
-		bl pedirCoordenadaX
-		bl pedirCoordenadaY
-		
-		
-		bl calcNum	// Calculamos el indice de la figura.
-		
-		ldr r6, =figura_2
-		strb r0, [r6]	// Guardamos el indice de la segunda figura en figura_2.
-		
-		bl darVuelta
-		bl imprMapa
-		
-		// Comparamos las figuras.
-		ldr r5, =figura_1
-		ldrb r0, [r5]	// Indice figura 1.
-		bl buscarFig	// Buscamos el caracter en sí.
-		push {r1}		// Guardamos el caracter temporalmente.
+		INICIO_JUEGO:
+			// Preparar todo para un nuevo juego.
+			
+		INICIO_TURNO:
+			bl imprMapa
+			bl actualizar_informar_valores
+			
+			/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
+			// Pedimos las coordenadas:
+			bl pedirCoordenadaX
+			bl pedirCoordenadaY
+			
+			bl calcNum		// Calculamos el indice de la figura.
+			ldr r5, =figura_1
+			strb r0, [r5]	// Guardamos el indice de la primer figura en figura_1.
+			
+			bl darVuelta
+			bl imprMapa
+			
+			/* ~~~~~~~~~~ Segunda figura del ciclo ~~~~~~~~~~ */
+			bl pedirCoordenadaX
+			bl pedirCoordenadaY
+			
+			
+			bl calcNum	// Calculamos el indice de la figura.
+			
+			ldr r6, =figura_2
+			strb r0, [r6]	// Guardamos el indice de la segunda figura en figura_2.
+			
+			bl darVuelta
+			bl imprMapa
+			
+			// Comparamos las figuras.
+			ldr r5, =figura_1
+			ldrb r0, [r5]	// Indice figura 1.
+			bl buscarFig	// Buscamos el caracter en sí.
+			push {r1}		// Guardamos el caracter temporalmente.
 
-		ldr r6, =figura_2
-		ldrb r0, [r6]	// Indice figura 2.
-		bl buscarFig
-		
-		mov r2, r1		// Movemos la figura 2 a r2.
-		pop {r1}		// Recuperamos la figura 1.
-		
-		// Comparamos los caracteres.
-		bl comparar_caracter
-		// Vemos si son iguales.
-		cmp r0, #1
-		beq acierto
-		
-		fallo:
-			// Incrementamos la cantidad de errores.
-			ldr r0, =errores
-			bl incrementar_y_guardar
+			ldr r6, =figura_2
+			ldrb r0, [r6]	// Indice figura 2.
+			bl buscarFig
 			
-			// Ocultamos las casillas que selecciono el usuario.
-			ldr r0, =figura_1
-			ldrb r0, [r0]
-			bl ocultar_casilla
+			mov r2, r1		// Movemos la figura 2 a r2.
+			pop {r1}		// Recuperamos la figura 1.
 			
-			ldr r0, =figura_2
-			ldrb r0, [r0]
-			bl ocultar_casilla
+			// Comparamos los caracteres.
+			bl comparar_caracter
+			// Vemos si son iguales.
+			cmp r0, #1
+			beq acierto
 			
-			bal controlar_fin
-		
-		acierto:
-			// Controlamos que el jugador haya tenido un intento nulo.
-			cmp r1, #' '
-			beq nulo
+			fallo:
+				// Incrementamos la cantidad de errores.
+				ldr r0, =errores
+				bl incrementar_y_guardar
+				
+				// Ocultamos las casillas que selecciono el usuario.
+				ldr r0, =figura_1
+				ldrb r0, [r0]
+				bl ocultar_casilla
+				
+				ldr r0, =figura_2
+				ldrb r0, [r0]
+				bl ocultar_casilla
+				
+				bal controlar_fin
 			
-			// Incrementamos la cantidad de aciertos.
-			ldr r0, =aciertos
-			bl incrementar_y_guardar
+			acierto:
+				// Controlamos que el jugador haya tenido un intento nulo.
+				cmp r1, #' '
+				beq nulo
+				
+				// Incrementamos la cantidad de aciertos.
+				ldr r0, =aciertos
+				bl incrementar_y_guardar
+				
+				bal controlar_fin
 			
-			bal controlar_fin
-		
-		nulo:
-			bl controlar_nulo
-		
-		controlar_fin:
-			bl controlar_estado
+			nulo:
+				bl controlar_nulo
 			
-			// Si es 0 debemos pasar a el siguiente ciclo.
-			cmp r0, #0
-			beq main
-			
-			bl informar_resultado
-			
+			controlar_fin:
+				bl controlar_estado
+				
+				// Si es 0 debemos pasar a el siguiente ciclo.
+				cmp r0, #0
+				beq INICIO_TURNO
+				
+				// TERMINO EL JUEGO:
+				bl informar_resultado
+				
+				bl consultar_reinicio
+				cmp r0, #1
+				beq INICIO_JUEGO
 		salir:
 			mov r7, #1
 			swi 0
