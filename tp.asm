@@ -1,5 +1,5 @@
 .data
-	mat_revelada: .ascii "  #   #     (   )        &          %           &  %             =    !     /      ~~  @= @  / !    "
+	mat_revelada: .ascii "  #   #     (   (        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
 
 	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
@@ -11,9 +11,15 @@
 	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
 	
 	/*estadisticas del jugador*/
+	// En forma númerica:
 	aciertos: .byte 0
 	errores: .byte 0
-        
+	nulos: .byte 0
+	// En forma de string:
+	sAciertos: .ascii "00"
+	sErrores: .ascii "00"
+	sIntentos: .ascii "00"
+	sVidas: .ascii "15"
 
 
 	//Para pedirCoordenadas 
@@ -29,6 +35,10 @@
 	
 	// Mensajes de acierto, fallo, victoria y derrota.
 	m_acierto: .ascii "Acertaste!\n"
+
+	// Constantes:
+	.equ apv, 5		// Aciertos para victoria.
+	.equ epd, 15	// Errores para derrota.
 
 .text
 
@@ -305,6 +315,40 @@
 			.fnend
 
 
+		/* Controla si se acabo el juego o si debe continuar.
+			input: -
+			output: r0: -1 si perdío por falta de vidas, 0 si continua, 1 si ganó. */
+		controlar_estado:
+			.fnstart
+				push {r1, r2, r4, r5, r6, r7, lr}
+				ldr r1, =aciertos
+				ldrb r1, [r1]
+				ldr r2, =errores
+				ldrb r2, [r2]
+				
+				mov r0, #0
+				
+				// Controlamos si gano.
+				cmp r1, #apv
+				beq WIN
+				// Controlamos si perdío.
+				cmp r2, #epd
+				beq LOSS
+				bal TCE
+				
+				WIN:
+					mov r0, #1
+					bal TCE
+				LOSS:
+					mov r0, #-1
+					bal TCE
+				
+				// Termina controlar_estado.
+				TCE:
+				pop {r1, r2, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
+
 	.global main
 	main:
 		bl imprMapa
@@ -353,13 +397,30 @@
 		cmp r0, #1
 		beq acierto
 		
-		bal salir
+		fallo:
+			// Incrementamos la cantidad de errores.
+			ldr r0, =errores
+			bl incrementar_y_guardar
+			
+			bal controlar_fin
 		
 		acierto:
-			mov r2, #11
-			ldr r1, =m_acierto
-			bl imprStr
+			// TODO: chequear si los caracteres eran 2 espacios vacios.
+			// Incrementamos la cantidad de aciertos.
+			ldr r0, =aciertos
+			bl incrementar_y_guardar
+			
+			bal controlar_fin
 		
+		controlar_fin:
+			bl controlar_estado
+			
+			// Si es 0 debemos pasar a el siguiente ciclo.
+			cmp r0, #0
+			beq main
+			
+			// TODO: Encargarse de victoria y derrota.
+			
 		salir:
 			mov r7, #1
 			swi 0
