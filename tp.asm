@@ -15,6 +15,7 @@
 	aciertos: .byte 0
 	errores: .byte 0
 	nulos: .byte 0
+
 	// En forma de string:
 	m_aciertos: .ascii "Nº de aciertos: "
 	sAciertos: .ascii "00\n"
@@ -421,6 +422,50 @@
 			bx lr
 		.fnend
 		
+		/* Oculta todas las casillas del mapa.
+		input: -
+		output: - */
+		ocultar_mapa:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			mov r0, #0		// Primera casilla.
+			
+			ocultar_casillas:
+				bl ocultar_casilla
+				
+				add r0, #1	// Pasamos a la siguiente casilla.
+
+				// Si no ocultamos las 100 casillas del mapa, continuamos el ciclo.
+				cmp r0, #100
+				blt ocultar_casilla
+			
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
+		
+		/* Reinicia los valores de vidas, errores, etc.
+		input: -
+		output: - */
+		reiniciar_estadisticas:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			// Cargamos la posición de las estadisticas.
+			ldr r0, =aciertos
+			ldr r1, =errores
+			ldr r2, =nulos
+		
+			// Las reiniciamos a sus valores originales.
+			mov r3, #0
+			strb r3, [r0]
+			
+			strb r3, [r1]
+			
+			strb r3, [r2]
+
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
+		
 		
 		/* Muestra los valores de vida e intentos.
 		input: -
@@ -619,6 +664,9 @@
 	main:
 		INICIO_JUEGO:
 			// Preparar todo para un nuevo juego.
+			bl ocultar_mapa
+			// TODO: generar mapa de forma aleatoria.
+			bl reiniciar_estadisticas
 			
 		INICIO_TURNO:
 			bl imprMapa
