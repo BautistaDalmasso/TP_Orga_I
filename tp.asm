@@ -551,7 +551,7 @@
 		push {r1}		// Guardamos el caracter temporalmente.
 
 		ldr r6, =figura_2
-		ldrb r2, [r6]	// Indice figura 2.
+		ldrb r0, [r6]	// Indice figura 2.
 		bl buscarFig
 		
 		mov r2, r1		// Movemos la figura 2 a r2.
