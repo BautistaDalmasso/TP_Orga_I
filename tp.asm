@@ -392,6 +392,23 @@
 			.fnend
 		
 		
+		/* Reemplaza una casilla del mapa por un '?'.
+		input: r0 - indice de la casilla.
+		output: - */
+		ocultar_casilla:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			// Carga la matriz.
+			ldr r1, =mat_mapa
+			
+			// Guarda el '?'.
+			mov r2, #'?'
+			strb r2, [r1, r0]
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
+		
+		
 		/* Muestra los valores de vida e intentos.
 		input: -
 		output: - */
@@ -567,6 +584,15 @@
 			// Incrementamos la cantidad de errores.
 			ldr r0, =errores
 			bl incrementar_y_guardar
+			
+			// Ocultamos las casillas que selecciono el usuario.
+			ldr r0, =figura_1
+			ldrb r0, [r0]
+			bl ocultar_casilla
+			
+			ldr r0, =figura_2
+			ldrb r0, [r0]
+			bl ocultar_casilla
 			
 			bal controlar_fin
 		
