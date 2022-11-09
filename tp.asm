@@ -16,11 +16,21 @@
 	errores: .byte 0
 	nulos: .byte 0
 	// En forma de string:
-	sAciertos: .ascii "00"
-	sErrores: .ascii "00"
-	sIntentos: .ascii "00"
-	sVidas: .ascii "15"
-
+	m_aciertos: .ascii "Nº de aciertos: "
+	sAciertos: .ascii "00\n"
+	.equ TMA, 16+4			// Tamaño del mensaje.
+	
+	m_errores: .ascii "Nº de errores: "
+	sErrores: .ascii "00\n"
+	.equ TME, 15+4			// Tamaño del mensaje.
+	
+	m_intentos: .ascii "Nº de intentos: "
+	sIntentos: .ascii "00\n"
+	.equ TMI, 16+4			// Tamaño del mensaje.
+	
+	m_vidas: .ascii "Nº de vidas: "
+	sVidas: .ascii "15\n"
+	.equ TMV, 13+4
 
 	//Para pedirCoordenadas 
 
@@ -321,7 +331,7 @@
 			output: r0: -1 si perdío por falta de vidas, 0 si continua, 1 si ganó. */
 		controlar_estado:
 			.fnstart
-				push {r1, r2, r4, r5, r6, r7, lr}
+				push {r1, r2, r3, r4, r5, r6, r7, lr}
 				ldr r1, =aciertos
 				ldrb r1, [r1]
 				ldr r2, =errores
@@ -346,7 +356,7 @@
 				
 				// Termina controlar_estado.
 				TCE:
-				pop {r1, r2, r4, r5, r6, r7, lr}
+				pop {r1, r2, r3, r4, r5, r6, r7, lr}
 				bx lr
 			.fnend
 
@@ -360,7 +370,7 @@
 		*/
 		controlar_nulo:
 			.fnstart
-				push {r0, r1, r2, r4, r5, r6, r7, lr}
+				push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 				ldr r0, =nulos
 				
 				// Incrementamos la cantidad de intentos nulos.
@@ -377,14 +387,137 @@
 
 				// Termina controlar nulo.
 				tcn:
-				pop {r0, r1, r2, r4, r5, r6, r7, lr}
+				pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 				bx lr
 			.fnend
 		
+		
+		/* Muestra los valores de vida e intentos.
+		input: -
+		output: - */
+		actualizar_informar_valores:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			// Cargamos las posiciones con los mensajes.
+			ldr r3, =m_intentos
+			ldr r4, =m_aciertos
+			ldr r5, =m_errores
+			ldr r6, =m_vidas
+			
+			// Actualizamos los mensajes para mostrar los valores.
+			bl actualizar_mensajes
+			
+			// Imprimimos los mensajes.
+			// Intentos.
+			mov r1, r3
+			mov r2, #TMI
+			bl imprStr
+			// Aciertos.
+			mov r1, r4
+			mov r2, #TMA
+			bl imprStr
+			// Errores.
+			mov r1, r5
+			mov r2, #TME
+			bl imprStr
+			// Vidas.
+			mov r1, r6
+			mov r2, #TMV
+			bl imprStr
+			
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
+
+		/* Actualiza los mensajes de intentos, aciertos, fallos y vidas para
+		mostrar los valores actuales.
+		input: -
+		output: - */
+		actualizar_mensajes:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
+			// Cargamos los valores actuales y los mensajes.
+			ldr r2, =aciertos
+			ldrb r2, [r2]
+			ldr r3, =sAciertos
+			
+			ldr r4, =errores
+			ldrb r4, [r4]
+			ldr r5, =sErrores
+			
+			ldr r6, =nulos
+			ldrb r6, [r6]
+			
+			ldr r7, =sIntentos
+			
+			ldr r8, =sVidas
+			
+			// Actualizamos aciertos.
+			mov r0, r2
+			mov r1, r3
+			bl num_a_ascii
+			
+			// Actualizamos errores.
+			mov r0, r4
+			mov r1, r5
+			bl num_a_ascii
+			
+			// Actualizamos intentos.
+			// Cantidad de intentos = aciertos + errores + intentos nulos.
+			mov r0, r2
+			add r0,	r4
+			add r0, r6
+			mov r1, r7
+			bl num_a_ascii
+			
+			// Actualizamos vidas.
+			// Vidas = errores para derrota - errores.
+			mov r0, #EPD
+			sub r0, r4
+			mov r1, r8
+			bl num_a_ascii
+			
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
+			bx lr
+		.fnend
+
+		/* Traduce un número de dos cifras a una cadena ASCII y lo guarda en
+		la posición de memoria indicada.
+		inputs: r0 - número a traducir.
+				r1 - posición donde guardar la cadena (se guardaran 2 bytes).
+		outputs: - */
+		num_a_ascii:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			mov r2, #0x30	// Guarda las decenas. Empieza en el valor ascii de "0".
+			
+			// Ciclo para calcular las decenas del número.
+			calcular_decenas:
+				cmp r0, #10
+				blt TCD		// Si el número en r0 es menor a 10, no hay que calcular más decenas.
+				
+				sub r0, #10
+				add r2, #1
+				bal calcular_decenas
+			
+			// Termino calculo de decenas.
+			TCD:
+				// Guardamos las decenas en la posición más significativa.
+				strb r2, [r1]
+				
+				// Traducimos las unidades a su caracter ascii.
+				add r0, #0x30
+				// Guardamos las unidades en la posición menos significativa.
+				strb r0, [r1, #1]
+			
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
 
 	.global main
 	main:
 		bl imprMapa
+		bl actualizar_informar_valores
 		
 		/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
 		// Pedimos las coordenadas:
@@ -418,7 +551,7 @@
 		push {r1}		// Guardamos el caracter temporalmente.
 
 		ldr r6, =figura_2
-		ldrb r2, [r6]	// Indice figura 2.
+		ldrb r0, [r6]	// Indice figura 2.
 		bl buscarFig
 		
 		mov r2, r1		// Movemos la figura 2 a r2.
