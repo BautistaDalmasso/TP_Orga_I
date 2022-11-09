@@ -57,10 +57,26 @@
 	m_reinicio: .ascii "¿Quiere iniciar un nuevo juego? (Y/n): "
 	reinicio_respuesta: .ascii "  "
 
+	// Puntajes:
+	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos
+	m_puntajes: .ascii "Ultimos 5 puntajes: "
+	puntajes_viejos: .ascii "(00), (00), (00), (00), (00).\n"
+	.equ T_MENSAJE_PUNTAJES, 20+30
+	pointer_puntaje: .byte 1					// Guarda el inicio del último puntaje en ser cargado.
+	.equ DISTANCIA_ENTRE_PUNTAJES, 6
+	.equ INDICE_MAXIMO_PUNTAJE, 24				// El valor maximo del puntero.
+	
+	puntaje_actual: .byte 15					// Puntaje de la ronda actual.
+	.equ PUNTAJE_BASE, 15						// El puntaje con el que se inicia es 15.
+	
+	.equ PUNTOS_POR_ACIERTO, 5
+	.equ PENALIZACION_POR_ERROR, 1
+
 	// Constantes:
 	.equ APV, 5		// Aciertos para victoria.
 	.equ EPD, 15	// Errores para derrota.
 	.equ INM, 5		// Intentos nulos maximos.
+
 
 .text
 
@@ -264,13 +280,13 @@
 	outputs: - */
 	incrementar_y_guardar:
 		.fnstart
-		push {lr}
+		push {r0, r1, lr}
 
 		ldrb r1,[r0]  /*se almacena el byte en r0*/
 		add r1,#1    /*se suma en una unidad el valor-*/
 		strb r1,[r0] /*envio a memoria el nuevo valor*/
 					
-		pop {lr}
+		pop {r0, r1, lr}
 		bx lr
 		.fnend
 
@@ -453,6 +469,7 @@
 			ldr r0, =aciertos
 			ldr r1, =errores
 			ldr r2, =nulos
+			ldr r4, =puntaje_actual
 		
 			// Las reiniciamos a sus valores originales.
 			mov r3, #0
@@ -461,6 +478,10 @@
 			strb r3, [r1]
 			
 			strb r3, [r2]
+			
+			// Reiniciamos el puntaje actual.
+			mov r3, #PUNTAJE_BASE
+			strb r3, [r4]
 
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 			bx lr
@@ -654,9 +675,113 @@
 	
 		reinicio_afirmativo:
 			mov r0, #1
+			
+			bl mostrar_puntajes		// También mostramos los puntajes.
 		
 		termina_consultar:
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	
+	/* Controla lo que sucede cuando un usuario acierta.
+	input: -
+	output: - */
+	controlar_acierto:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r0, =aciertos
+		ldr r1, =puntaje_actual
+		
+		// Incrementamos la cantidad de aciertos.
+		bl incrementar_y_guardar
+		
+		// Aumentamos el puntaje actual.
+		ldrb r2, [r1]
+		add r2, #PUNTOS_POR_ACIERTO
+		strb r2, [r1]
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	/* Controla lo que sucede cuando un usuario falla.
+	input: -
+	output: - */
+	controlar_fallo:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r1, =errores
+		ldr r2, =figura_1
+		ldr r3, =figura_2
+		ldr r4, =puntaje_actual
+		
+		// Incrementamos la cantidad de errores.
+		mov r0, r1
+		bl incrementar_y_guardar
+		
+		// Ocultamos las casillas que selecciono el usuario.
+		ldrb r0, [r2]
+		bl ocultar_casilla
+		
+		ldrb r0, [r3]
+		bl ocultar_casilla
+		
+		// Penalizamos el puntaje del usuario.
+		ldrb r0, [r4]
+		sub r0, #PENALIZACION_POR_ERROR
+		strb r0, [r4]
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+
+	/* ------------------- PUNTAJES ------------------- */
+	/* Guarda el puntaje actual en la lista de puntajes.
+	input: -
+	output: - */
+	guardar_puntaje:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r0, =puntaje_actual
+		ldr r1, =puntajes_viejos
+		ldr r2, =pointer_puntaje
+		
+		ldrb r3, [r2]
+		/* Si el pointer puntaje se pasó del máximo, empezamos a sobreescribir
+		puntajes. */
+		cmp r3, #INDICE_MAXIMO_PUNTAJE
+		ble continuar_guardado				// Si no se paso continuamos.
+			// Se paso del máximo así que reiniciamos el puntero.
+			mov r3, #1
+			strb r3, [r2]
+		
+		continuar_guardado:
+			// Convertimos el puntaje a ascii y lo guardamos donde indique el puntero.
+			ldrb r0, [r0]
+			add r1, r3
+			bl num_a_ascii
+		
+			// Aumentamos el valor del puntero.
+			add r3, #DISTANCIA_ENTRE_PUNTAJES
+			strb r3, [r2]
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+	/* Muestra los últimos 5 puntajes.
+	input: -
+	output: - */
+	mostrar_puntajes:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+
+		ldr r1, =m_puntajes
+		mov r2, #T_MENSAJE_PUNTAJES
+		bl imprStr
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
 
@@ -717,18 +842,7 @@
 			beq acierto
 			
 			fallo:
-				// Incrementamos la cantidad de errores.
-				ldr r0, =errores
-				bl incrementar_y_guardar
-				
-				// Ocultamos las casillas que selecciono el usuario.
-				ldr r0, =figura_1
-				ldrb r0, [r0]
-				bl ocultar_casilla
-				
-				ldr r0, =figura_2
-				ldrb r0, [r0]
-				bl ocultar_casilla
+				bl controlar_fallo
 				
 				bal controlar_fin
 			
@@ -737,9 +851,7 @@
 				cmp r1, #' '
 				beq nulo
 				
-				// Incrementamos la cantidad de aciertos.
-				ldr r0, =aciertos
-				bl incrementar_y_guardar
+				bl controlar_acierto
 				
 				bal controlar_fin
 			
@@ -755,6 +867,8 @@
 				
 				// TERMINO EL JUEGO:
 				bl informar_resultado
+				
+				bl guardar_puntaje
 				
 				bl consultar_reinicio
 				cmp r0, #1
