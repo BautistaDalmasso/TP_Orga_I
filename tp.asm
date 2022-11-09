@@ -46,6 +46,12 @@
 	// Mensajes de acierto, fallo, victoria y derrota.
 	m_acierto: .ascii "Acertaste!\n"
 
+	.equ T_MENSAJE_VICTORIA, 22
+	m_victoria: .ascii "Felicidades, ganaste!\n"
+
+	.equ T_MENSAJE_DERROTA, 10
+	m_derrota: .ascii "PERDISTE.\n"
+
 	// Constantes:
 	.equ APV, 5		// Aciertos para victoria.
 	.equ EPD, 15	// Errores para derrota.
@@ -534,6 +540,39 @@
 			bx lr
 		.fnend
 
+		
+		/* Muestra un mensaje al jugador cuando gana o pierde.
+		input: r0 - 1 si ganó.
+		output: -
+		*/
+		informar_resultado:
+		.fnstart
+			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			ldr r3, =m_victoria
+			ldr r4, =m_derrota
+
+			cmp r0, #1
+			beq gano
+			
+			perdio:
+				// Mostrar mensaje de derrota.
+				mov r1, r4
+				mov r2, #T_MENSAJE_DERROTA
+				bl imprStr
+				bal termina_i_r
+
+			gano:
+				// Mostrar mensaje de victoria.
+				mov r1, r3
+				mov r2, #T_MENSAJE_VICTORIA
+				bl imprStr
+			
+			termina_i_r:
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+			bx lr
+		.fnend
+
+
 	.global main
 	main:
 		bl imprMapa
@@ -620,7 +659,7 @@
 			cmp r0, #0
 			beq main
 			
-			// TODO: Encargarse de victoria y derrota.
+			bl informar_resultado
 			
 		salir:
 			mov r7, #1
