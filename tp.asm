@@ -58,9 +58,9 @@
 	reinicio_respuesta: .ascii "  "
 
 	// Puntajes:
-	puntajes_viejos: .ascii "000000000000000"	// Guarda los últimos 5 puntajes, cada puntaje tiene 3 digitos.
+	puntajes_viejos: .ascii "0000000000"		// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos.
 	pointer_puntaje: .byte 0					// Guarda el inicio del último puntaje en ser cargado.
-	.equ INDICE_MAXIMO_PUNTAJE, 4*3				// El valor maximo del puntero.
+	.equ INDICE_MAXIMO_PUNTAJE, 4*2				// El valor maximo del puntero.
 	
 	puntaje_actual: .byte 15					// Puntaje de la ronda actual.
 	.equ PUNTAJE_BASE, 15						// El puntaje con el que se inicia es 15.
@@ -276,13 +276,13 @@
 	outputs: - */
 	incrementar_y_guardar:
 		.fnstart
-		push {lr}
+		push {r0, r1, lr}
 
 		ldrb r1,[r0]  /*se almacena el byte en r0*/
 		add r1,#1    /*se suma en una unidad el valor-*/
 		strb r1,[r0] /*envio a memoria el nuevo valor*/
 					
-		pop {lr}
+		pop {r0, r1, lr}
 		bx lr
 		.fnend
 
@@ -731,6 +731,40 @@
 	.fnend
 
 
+	/* Guarda el puntaje actual en la lista de puntajes.
+	input: -
+	output: - */
+	guardar_puntaje:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r0, =puntaje_actual
+		ldr r1, =puntajes_viejos
+		ldr r2, =pointer_puntaje
+		
+		ldrb r3, [r2]
+		/* Si el pointer puntaje se pasó del máximo, empezamos a sobreescribir
+		puntajes. */
+		cmp r3, #INDICE_MAXIMO_PUNTAJE
+		ble continuar_guardado				// Si no se paso continuamos.
+			// Se paso del máximo así que reiniciamos el puntero.
+			mov r3, #0
+			strb r3, [r2]
+		
+		continuar_guardado:
+			// Convertimos el puntaje a ascii y lo guardamos donde indique el puntero.
+			ldrb r0, [r0]
+			add r1, r3
+			bl num_a_ascii
+		
+			// Aumentamos el valor del puntero.
+			add r3, #1
+			strb r3, [r2]
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+
 	.global main
 	main:
 		INICIO_JUEGO:
@@ -813,6 +847,8 @@
 				
 				// TERMINO EL JUEGO:
 				bl informar_resultado
+				
+				bl guardar_puntaje
 				
 				bl consultar_reinicio
 				cmp r0, #1
