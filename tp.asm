@@ -58,9 +58,13 @@
 	reinicio_respuesta: .ascii "  "
 
 	// Puntajes:
-	puntajes_viejos: .ascii "0000000000"		// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos.
-	pointer_puntaje: .byte 0					// Guarda el inicio del último puntaje en ser cargado.
-	.equ INDICE_MAXIMO_PUNTAJE, 4*2				// El valor maximo del puntero.
+	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos
+	m_puntajes: .ascii "Ultimos 5 puntajes: "
+	puntajes_viejos: .ascii "(00), (00), (00), (00), (00).\n"
+	.equ T_MENSAJE_PUNTAJES, 20+30
+	pointer_puntaje: .byte 1					// Guarda el inicio del último puntaje en ser cargado.
+	.equ DISTANCIA_ENTRE_PUNTAJES, 6
+	.equ INDICE_MAXIMO_PUNTAJE, 24				// El valor maximo del puntero.
 	
 	puntaje_actual: .byte 15					// Puntaje de la ronda actual.
 	.equ PUNTAJE_BASE, 15						// El puntaje con el que se inicia es 15.
@@ -671,6 +675,8 @@
 	
 		reinicio_afirmativo:
 			mov r0, #1
+			
+			bl mostrar_puntajes		// También mostramos los puntajes.
 		
 		termina_consultar:
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
@@ -731,6 +737,7 @@
 	.fnend
 
 
+	/* ------------------- PUNTAJES ------------------- */
 	/* Guarda el puntaje actual en la lista de puntajes.
 	input: -
 	output: - */
@@ -747,7 +754,7 @@
 		cmp r3, #INDICE_MAXIMO_PUNTAJE
 		ble continuar_guardado				// Si no se paso continuamos.
 			// Se paso del máximo así que reiniciamos el puntero.
-			mov r3, #0
+			mov r3, #1
 			strb r3, [r2]
 		
 		continuar_guardado:
@@ -757,13 +764,26 @@
 			bl num_a_ascii
 		
 			// Aumentamos el valor del puntero.
-			add r3, #1
+			add r3, #DISTANCIA_ENTRE_PUNTAJES
 			strb r3, [r2]
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
+	/* Muestra los últimos 5 puntajes.
+	input: -
+	output: - */
+	mostrar_puntajes:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 
+		ldr r1, =m_puntajes
+		mov r2, #T_MENSAJE_PUNTAJES
+		bl imprStr
+		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
 
 	.global main
 	main:
