@@ -1,5 +1,5 @@
 .data
-	mat_revelada: .ascii "  #   #     (   )        &          %           &  %             =    !     /      ~~  @= @  / !    "
+	mat_revelada: .ascii "  #   #     (   (        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
 
 	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
@@ -11,9 +11,15 @@
 	separador: .ascii "\n~~~~~~~~~~~~~~~~~~~~~\n"	// Separador para imprimir.
 	
 	/*estadisticas del jugador*/
+	// En forma númerica:
 	aciertos: .byte 0
 	errores: .byte 0
-        
+	nulos: .byte 0
+	// En forma de string:
+	sAciertos: .ascii "00"
+	sErrores: .ascii "00"
+	sIntentos: .ascii "00"
+	sVidas: .ascii "15"
 
 
 	//Para pedirCoordenadas 
@@ -29,6 +35,11 @@
 	
 	// Mensajes de acierto, fallo, victoria y derrota.
 	m_acierto: .ascii "Acertaste!\n"
+
+	// Constantes:
+	.equ APV, 5		// Aciertos para victoria.
+	.equ EPD, 15	// Errores para derrota.
+	.equ INM, 5		// Intentos nulos maximos.
 
 .text
 
@@ -305,6 +316,72 @@
 			.fnend
 
 
+		/* Controla si se acabo el juego o si debe continuar.
+			input: -
+			output: r0: -1 si perdío por falta de vidas, 0 si continua, 1 si ganó. */
+		controlar_estado:
+			.fnstart
+				push {r1, r2, r4, r5, r6, r7, lr}
+				ldr r1, =aciertos
+				ldrb r1, [r1]
+				ldr r2, =errores
+				ldrb r2, [r2]
+				
+				mov r0, #0
+				
+				// Controlamos si gano.
+				cmp r1, #APV
+				beq WIN
+				// Controlamos si perdío.
+				cmp r2, #EPD
+				beq LOSS
+				bal TCE
+				
+				WIN:
+					mov r0, #1
+					bal TCE
+				LOSS:
+					mov r0, #-1
+					bal TCE
+				
+				// Termina controlar_estado.
+				TCE:
+				pop {r1, r2, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
+
+
+		/* Controla lo que pasa cuando el jugador descubre 2 casillas vacías.
+		El jugador tiene un máximo de 5 intentos "nulos". Una vez que se hayan 
+		acabado estos cuentan como un error.
+		Los intentos nulos nunca son considerados aciertos.
+		input: -
+		output: -
+		*/
+		controlar_nulo:
+			.fnstart
+				push {r0, r1, r2, r4, r5, r6, r7, lr}
+				ldr r0, =nulos
+				
+				// Incrementamos la cantidad de intentos nulos.
+				bl incrementar_y_guardar
+				
+				// Comparamos no pasó del máximo.
+				ldrb r0, [r0]
+				cmp r0, #INM
+				ble tcn
+				
+				// Como se pasó del máximo le sumamos un error.
+				ldr r0, =errores
+				bl incrementar_y_guardar
+
+				// Termina controlar nulo.
+				tcn:
+				pop {r0, r1, r2, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
+		
+
 	.global main
 	main:
 		bl imprMapa
@@ -353,13 +430,36 @@
 		cmp r0, #1
 		beq acierto
 		
-		bal salir
+		fallo:
+			// Incrementamos la cantidad de errores.
+			ldr r0, =errores
+			bl incrementar_y_guardar
+			
+			bal controlar_fin
 		
 		acierto:
-			mov r2, #11
-			ldr r1, =m_acierto
-			bl imprStr
+			// Controlamos que el jugador haya tenido un intento nulo.
+			cmp r1, #' '
+			beq nulo
+			
+			// Incrementamos la cantidad de aciertos.
+			ldr r0, =aciertos
+			bl incrementar_y_guardar
+			
+			bal controlar_fin
 		
+		nulo:
+			bl controlar_nulo
+		
+		controlar_fin:
+			bl controlar_estado
+			
+			// Si es 0 debemos pasar a el siguiente ciclo.
+			cmp r0, #0
+			beq main
+			
+			// TODO: Encargarse de victoria y derrota.
+			
 		salir:
 			mov r7, #1
 			swi 0
