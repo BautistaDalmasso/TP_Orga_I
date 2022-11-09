@@ -700,10 +700,10 @@
 			ldrb r4, [r1, r3]
 			
 			// Aumentamos el contador de indice.
-			add r2, #1
+			add r3, #1
 			
 			// Si el puntaje actual es mayor al cargado, seguimos recorriendo.
-			cmp r2, r3
+			cmp r2, r4
 			bgt recorrido_vector
 			
 		no_es_record:
