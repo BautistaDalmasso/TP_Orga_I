@@ -37,8 +37,9 @@
 	m_acierto: .ascii "Acertaste!\n"
 
 	// Constantes:
-	.equ apv, 5		// Aciertos para victoria.
-	.equ epd, 15	// Errores para derrota.
+	.equ APV, 5		// Aciertos para victoria.
+	.equ EPD, 15	// Errores para derrota.
+	.equ INM, 5		// Intentos nulos maximos.
 
 .text
 
@@ -329,10 +330,10 @@
 				mov r0, #0
 				
 				// Controlamos si gano.
-				cmp r1, #apv
+				cmp r1, #APV
 				beq WIN
 				// Controlamos si perdío.
-				cmp r2, #epd
+				cmp r2, #EPD
 				beq LOSS
 				bal TCE
 				
@@ -348,6 +349,38 @@
 				pop {r1, r2, r4, r5, r6, r7, lr}
 				bx lr
 			.fnend
+
+
+		/* Controla lo que pasa cuando el jugador descubre 2 casillas vacías.
+		El jugador tiene un máximo de 5 intentos "nulos". Una vez que se hayan 
+		acabado estos cuentan como un error.
+		Los intentos nulos nunca son considerados aciertos.
+		input: -
+		output: -
+		*/
+		controlar_nulo:
+			.fnstart
+				push {r0, r1, r2, r4, r5, r6, r7, lr}
+				ldr r0, =nulos
+				
+				// Incrementamos la cantidad de intentos nulos.
+				bl incrementar_y_guardar
+				
+				// Comparamos no pasó del máximo.
+				ldrb r0, [r0]
+				cmp r0, #INM
+				ble tcn
+				
+				// Como se pasó del máximo le sumamos un error.
+				ldr r0, =errores
+				bl incrementar_y_guardar
+
+				// Termina controlar nulo.
+				tcn:
+				pop {r0, r1, r2, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
+		
 
 	.global main
 	main:
@@ -405,12 +438,18 @@
 			bal controlar_fin
 		
 		acierto:
-			// TODO: chequear si los caracteres eran 2 espacios vacios.
+			// Controlamos que el jugador haya tenido un intento nulo.
+			cmp r1, #' '
+			beq nulo
+			
 			// Incrementamos la cantidad de aciertos.
 			ldr r0, =aciertos
 			bl incrementar_y_guardar
 			
 			bal controlar_fin
+		
+		nulo:
+			bl controlar_nulo
 		
 		controlar_fin:
 			bl controlar_estado
