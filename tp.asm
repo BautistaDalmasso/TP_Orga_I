@@ -58,11 +58,20 @@
 	reinicio_respuesta: .ascii "  "
 
 	// Puntajes:
-	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos
+	/*
+	Utilizamos un string con los puntajes para poder mostrarlos al usuario.
+	Utilizamos un vector númerico con puntajes para poder comparar puntajes entre sí.*/
+	
+	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos.
 	m_puntajes: .ascii "Ultimos 5 puntajes: "
 	puntajes_viejos: .ascii "(00), (00), (00), (00), (00).\n"
 	.equ T_MENSAJE_PUNTAJES, 20+30
 	pointer_puntaje: .byte 1					// Guarda el inicio del último puntaje en ser cargado.
+	
+	// Guarda los puntajes de forma númerica (en un vector).
+	vector_puntajes: .byte 5
+	ptr_vector_puntaje: .byte 0					// Puntero del último puntaje en ser cargado.
+	
 	.equ DISTANCIA_ENTRE_PUNTAJES, 6
 	.equ INDICE_MAXIMO_PUNTAJE, 24				// El valor maximo del puntero.
 	
@@ -738,7 +747,7 @@
 
 
 	/* ------------------- PUNTAJES ------------------- */
-	/* Guarda el puntaje actual en la lista de puntajes.
+	/* Guarda el puntaje actual en el vec de puntajes.
 	input: -
 	output: - */
 	guardar_puntaje:
@@ -747,13 +756,19 @@
 		ldr r0, =puntaje_actual
 		ldr r1, =puntajes_viejos
 		ldr r2, =pointer_puntaje
+		ldr r5, =vector_puntajes
+		ldr r6, =ptr_vector_puntaje
 		
 		ldrb r3, [r2]
 		/* Si el pointer puntaje se pasó del máximo, empezamos a sobreescribir
 		puntajes. */
 		cmp r3, #INDICE_MAXIMO_PUNTAJE
 		ble continuar_guardado				// Si no se paso continuamos.
-			// Se paso del máximo así que reiniciamos el puntero.
+			// Se paso del máximo así que reiniciamos los punteros.
+			// Puntero del vector.
+			mov r3, #0
+			str r3, [r6]
+			// Puntero del string.
 			mov r3, #1
 			strb r3, [r2]
 		
@@ -763,9 +778,16 @@
 			add r1, r3
 			bl num_a_ascii
 		
-			// Aumentamos el valor del puntero.
+			// Guardamos el puntaje en el vector.
+			ldrb r7, [r6]
+			strb r0, [r5, r7]
+		
+			// Aumentamos el valor de los punteros.
 			add r3, #DISTANCIA_ENTRE_PUNTAJES
 			strb r3, [r2]
+			
+			add r7, #1
+			strb r7, [r6]
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
