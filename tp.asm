@@ -378,7 +378,7 @@
 				push {r1, r2, r3, r4, r5, r6, r7, lr}
 				ldr r1, =aciertos
 				ldrb r1, [r1]
-				ldr r2, =errores
+				ldr r2, =vidas
 				ldrb r2, [r2]
 				
 				mov r0, #0
@@ -387,7 +387,7 @@
 				cmp r1, #APV
 				beq WIN
 				// Controlamos si perdío.
-				cmp r2, #EPD
+				cmp r2, #0
 				beq LOSS
 				bal TCE
 				
