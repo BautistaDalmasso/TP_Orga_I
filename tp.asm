@@ -36,7 +36,7 @@
 
 	m_puntaje_actual: .ascii "Puntos: "
 	sPuntaje: .ascii "00\n"
-	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+4
+	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+3
 
 	//Para pedirCoordenadas 
 
