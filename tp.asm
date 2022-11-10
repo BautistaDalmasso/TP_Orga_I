@@ -33,6 +33,10 @@
 	sVidas: .ascii "15\n"
 	.equ TMV, 13+4
 
+	m_puntaje_actual: .ascii "Puntos: "
+	sPuntaje: .ascii "00\n"
+	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+4
+
 	//Para pedirCoordenadas 
 
 	input_x:.space 2
@@ -45,7 +49,11 @@
 	figura_2: .byte 1
 	
 	// Mensajes de acierto, fallo, victoria y derrota.
-	m_acierto: .ascii "Acertaste!\n"
+	m_acierto: .ascii "Acertaste! +5 puntos.\n"
+	.equ T_MENSAJE_ACIERTO, 22
+	
+	m_fallo: .ascii "Fallaste. -1 punto.\n"
+	.equ T_MENSAJE_FALLO, 20
 
 	.equ T_MENSAJE_VICTORIA, 22
 	m_victoria: .ascii "Felicidades, ganaste!\n"
@@ -767,6 +775,7 @@
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		ldr r0, =aciertos
 		ldr r1, =puntaje_actual
+		ldr r3, =m_acierto
 		
 		// Incrementamos la cantidad de aciertos.
 		bl incrementar_y_guardar
@@ -775,6 +784,11 @@
 		ldrb r2, [r1]
 		add r2, #PUNTOS_POR_ACIERTO
 		strb r2, [r1]
+		
+		// Mostramos un mensaje por el acierto.
+		mov r1, r3
+		mov r2, #T_MENSAJE_ACIERTO
+		bl imprStr
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
@@ -790,6 +804,7 @@
 		ldr r2, =figura_1
 		ldr r3, =figura_2
 		ldr r4, =puntaje_actual
+		ldr r5, =m_fallo
 		
 		// Incrementamos la cantidad de errores.
 		mov r0, r1
@@ -806,6 +821,11 @@
 		ldrb r0, [r4]
 		sub r0, #PENALIZACION_POR_ERROR
 		strb r0, [r4]
+		
+		// Mostramos un mensaje por el fallo.
+		mov r1, r5
+		mov r2, #T_MENSAJE_FALLO
+		bl imprStr
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
