@@ -33,6 +33,10 @@
 	sVidas: .ascii "15\n"
 	.equ TMV, 13+4
 
+	m_puntaje_actual: .ascii "Puntos: "
+	sPuntaje: .ascii "00\n"
+	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+4
+
 	//Para pedirCoordenadas 
 
 	input_x:.space 2
@@ -45,10 +49,17 @@
 	figura_2: .byte 1
 	
 	// Mensajes de acierto, fallo, victoria y derrota.
-	m_acierto: .ascii "Acertaste!\n"
+	m_acierto: .ascii "Acertaste! +5 puntos.\n"
+	.equ T_MENSAJE_ACIERTO, 22
+	
+	m_fallo: .ascii "Fallaste. -1 punto.\n"
+	.equ T_MENSAJE_FALLO, 20
 
 	.equ T_MENSAJE_VICTORIA, 22
 	m_victoria: .ascii "Felicidades, ganaste!\n"
+	
+	.equ T_MENSAJE_RECORD, 26
+	m_record: .ascii "Nuevo record de puntaje!.\n"
 
 	.equ T_MENSAJE_DERROTA, 10
 	m_derrota: .ascii "PERDISTE.\n"
@@ -61,13 +72,22 @@
 	reinicio_respuesta: .ascii "  "
 
 	// Puntajes:
-	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos
+	/* Utilizamos un string con los puntajes para poder mostrarlos al usuario.
+	Utilizamos un vector númerico con puntajes para poder comparar puntajes entre sí.*/
+	
+	// Guarda los últimos 5 puntajes, cada puntaje tiene 2 digitos.
 	m_puntajes: .ascii "Ultimos 5 puntajes: "
 	puntajes_viejos: .ascii "(00), (00), (00), (00), (00).\n"
 	.equ T_MENSAJE_PUNTAJES, 20+30
 	pointer_puntaje: .byte 1					// Guarda el inicio del último puntaje en ser cargado.
+	
+	// Guarda los puntajes de forma númerica (en un vector).
+	vector_puntajes: .zero 5
+	.equ T_VECTOR_PUNTAJES, 5
+	ptr_vector_puntaje: .byte 0					// Puntero del último puntaje en ser cargado.
+	
 	.equ DISTANCIA_ENTRE_PUNTAJES, 6
-	.equ INDICE_MAXIMO_PUNTAJE, 24				// El valor maximo del puntero.
+	.equ INDICE_MAXIMO_PUNTAJE, 25				// El valor maximo del puntero.
 	
 	puntaje_actual: .byte 15					// Puntaje de la ronda actual.
 	.equ PUNTAJE_BASE, 15						// El puntaje con el que se inicia es 15.
@@ -508,6 +528,7 @@
 			ldr r4, =m_aciertos
 			ldr r5, =m_errores
 			ldr r6, =m_vidas
+			ldr r7, =m_puntaje_actual
 			
 			// Actualizamos los mensajes para mostrar los valores.
 			bl actualizar_mensajes
@@ -528,6 +549,10 @@
 			// Vidas.
 			mov r1, r6
 			mov r2, #TMV
+			bl imprStr
+			// Puntos
+			mov r1, r7
+			mov r2, #T_MENSAJE_PUNTOS_ACTUALES
 			bl imprStr
 			
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
@@ -557,6 +582,10 @@
 			
 			ldr r8, =sVidas
 			
+			ldr r9, =sPuntaje
+			ldr r10, =puntaje_actual
+			ldrb r10, [r10]
+			
 			// Actualizamos aciertos.
 			mov r0, r2
 			mov r1, r3
@@ -580,6 +609,11 @@
 			mov r0, #EPD
 			sub r0, r4
 			mov r1, r8
+			bl num_a_ascii
+			
+			// Actualizamos puntaje.
+			mov r0, r10
+			mov r1, r9
 			bl num_a_ascii
 			
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
@@ -619,8 +653,9 @@
 			bx lr
 		.fnend
 
-		
-				/* Muestra un mensaje al jugador cuando gana o pierde.
+
+		/* ----------------------- Control de aciertos, fallos, victorias, etc. ----------------------- */
+		/* Muestra un mensaje al jugador cuando gana o pierde.
 		input: r0 - 1 si ganó.
 		output: -
 		*/
@@ -629,6 +664,8 @@
 			push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 			ldr r3, =m_victoria
 			ldr r4, =m_derrota
+
+			bl informar_record
 
 			cmp r0, #1
 			beq gano
@@ -669,6 +706,109 @@
 			bx lr
 		.fnend
 
+
+	/* Informa al usuario que obtuvo un nuevo record de ser necesario.
+	input: -
+	output: - */
+	informar_record:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r1, =m_record
+		
+		// Chequeamos si hubo un record.
+		bl chequear_record
+		
+		// De no haberlo, salimos.
+		cmp r0, #0
+		beq termina_informar_record
+			// Como lo hubo, mostramos el mensaje.
+			mov r2, #T_MENSAJE_RECORD
+			bl imprStr
+		
+		termina_informar_record:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+	/* Chequea si el usuario alcanzo un nuevo record de puntaje.
+	input: -
+	output: r0 - 1 si alcanzo un record, 0 si no. */
+	chequear_record:
+	.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r1, =vector_puntajes
+		// Cargamos el puntaje actual.
+		ldr r2, =puntaje_actual
+		ldrb r2, [r2]
+		
+		mov r3, #0		// Indice que esta siendo recorrido.
+		recorrido_vector:
+			// Si recorrimos todo el vector sin encontrar ninguno mayor
+			// es porque el record actual es mayor.
+			cmp r3, #T_VECTOR_PUNTAJES
+			bge es_record
+			
+			// Cargamos el siguiente valor.
+			ldrb r4, [r1, r3]
+			
+			// Aumentamos el contador de indice.
+			add r3, #1
+			
+			// Si el puntaje actual es mayor al cargado, seguimos recorriendo.
+			cmp r2, r4
+			bgt recorrido_vector
+			
+		no_es_record:
+			mov r0, #0
+			bal fin_chequeo
+		
+		es_record:
+			mov r0, #1
+		
+		fin_chequeo:
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	/* Pregunta al usuario si quiere reiniciar el juego.
+	input: -
+	output: r0 - 1 si hay que reiniciar el juego, 0 si hay que salir.
+	*/
+	consultar_reinicio:
+	.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r3, =m_reinicio
+		ldr r4, =reinicio_respuesta
+		
+		// Muestra consulta de reinicio:
+		mov r1, r3
+		mov r2, #T_MENSAJE_REINICIO
+		bl imprStr
+		
+		// Pide input:
+		mov r7, #3
+		mov r0, #0
+		mov r2, #2
+		mov r1, r4
+		swi 0
+		
+		// Ve si la respuesta es afirmativa.
+		ldrb r1, [r4]
+		cmp r1, #'Y'
+		beq reinicio_afirmativo
+		
+			mov r0, #0
+			bal termina_consultar
+	
+		reinicio_afirmativo:
+			mov r0, #1
+			
+			bl mostrar_puntajes		// También mostramos los puntajes.
+		
+		termina_consultar:
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
 	
 	/* Controla lo que sucede cuando un usuario acierta.
 	input: -
@@ -678,6 +818,7 @@
 		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		ldr r0, =aciertos
 		ldr r1, =puntaje_actual
+		ldr r3, =m_acierto
 		
 		// Incrementamos la cantidad de aciertos.
 		bl incrementar_y_guardar
@@ -686,6 +827,11 @@
 		ldrb r2, [r1]
 		add r2, #PUNTOS_POR_ACIERTO
 		strb r2, [r1]
+		
+		// Mostramos un mensaje por el acierto.
+		mov r1, r3
+		mov r2, #T_MENSAJE_ACIERTO
+		bl imprStr
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
@@ -701,6 +847,7 @@
 		ldr r2, =figura_1
 		ldr r3, =figura_2
 		ldr r4, =puntaje_actual
+		ldr r5, =m_fallo
 		
 		// Incrementamos la cantidad de errores.
 		mov r0, r1
@@ -718,13 +865,18 @@
 		sub r0, #PENALIZACION_POR_ERROR
 		strb r0, [r4]
 		
+		// Mostramos un mensaje por el fallo.
+		mov r1, r5
+		mov r2, #T_MENSAJE_FALLO
+		bl imprStr
+		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
 
 
 	/* ------------------- PUNTAJES ------------------- */
-	/* Guarda el puntaje actual en la lista de puntajes.
+	/* Guarda el puntaje actual en el vec de puntajes.
 	input: -
 	output: - */
 	guardar_puntaje:
@@ -733,13 +885,19 @@
 		ldr r0, =puntaje_actual
 		ldr r1, =puntajes_viejos
 		ldr r2, =pointer_puntaje
+		ldr r5, =vector_puntajes
+		ldr r6, =ptr_vector_puntaje
 		
 		ldrb r3, [r2]
 		/* Si el pointer puntaje se pasó del máximo, empezamos a sobreescribir
 		puntajes. */
 		cmp r3, #INDICE_MAXIMO_PUNTAJE
 		ble continuar_guardado				// Si no se paso continuamos.
-			// Se paso del máximo así que reiniciamos el puntero.
+			// Se paso del máximo así que reiniciamos los punteros.
+			// Puntero del vector.
+			mov r3, #0
+			strb r3, [r6]
+			// Puntero del string.
 			mov r3, #1
 			strb r3, [r2]
 		
@@ -749,9 +907,16 @@
 			add r1, r3
 			bl num_a_ascii
 		
-			// Aumentamos el valor del puntero.
+			// Guardamos el puntaje en el vector.
+			ldrb r7, [r6]
+			strb r0, [r5, r7]
+		
+			// Aumentamos el valor de los punteros.
 			add r3, #DISTANCIA_ENTRE_PUNTAJES
 			strb r3, [r2]
+			
+			add r7, #1
+			strb r7, [r6]
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
