@@ -15,6 +15,7 @@
 	aciertos: .byte 0
 	errores: .byte 0
 	nulos: .byte 0
+	vidas: .byte 15
 
 	// En forma de string:
 	m_aciertos: .ascii "Nº de aciertos: "
@@ -556,6 +557,7 @@
 			ldr r7, =sIntentos
 			
 			ldr r8, =sVidas
+			ldr r9, =vidas
 			
 			// Actualizamos aciertos.
 			mov r0, r2
@@ -576,9 +578,7 @@
 			bl num_a_ascii
 			
 			// Actualizamos vidas.
-			// Vidas = errores para derrota - errores.
-			mov r0, #EPD
-			sub r0, r4
+			ldrb r0, [r9]
 			mov r1, r8
 			bl num_a_ascii
 			
@@ -701,6 +701,7 @@
 		ldr r2, =figura_1
 		ldr r3, =figura_2
 		ldr r4, =puntaje_actual
+		ldr r5, =vidas
 		
 		// Incrementamos la cantidad de errores.
 		mov r0, r1
@@ -717,6 +718,11 @@
 		ldrb r0, [r4]
 		sub r0, #PENALIZACION_POR_ERROR
 		strb r0, [r4]
+		
+		// Le restamos una vida.
+		ldrb r6, [r5]
+		sub r6, #1
+		strb r6, [r5]
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
