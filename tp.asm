@@ -88,10 +88,12 @@
 	.equ INM, 5		// Intentos nulos maximos.
 
 	//Pregunta para vida o ganar el juego
-	m_pregunta: .ascii "Si acertas la pregunta ganas, si te aproximas tenes una oportunidad más: \n"
-	pregunta_1: .ascii "¿En qué año se publico el codigo Hamming?\n"
+	m_pregunta: .ascii "Si acertas la pregunta ganas, si te aproximas tenes una oportunidad más:\n"
+	.equ T_MENSAJE_EXPLICACION, 74
+	pregunta_1: .ascii "¿En qué año se publico el codigo Hamming?: "
+	.equ T_MENSAJE_PREGUNTA, 45
 	respuesta_1: .hword 1950
-	resp_usuario: .ascii "0000"
+	resp_usuario: .ascii "0000\n"
 
 	.equ RANGO_DE_ERROR, 75
 
@@ -645,6 +647,7 @@
 				mov r1, r4
 				mov r2, #T_MENSAJE_DERROTA
 				bl imprStr
+				bal termina_i_r
 
 			gano:
 				// Mostrar mensaje de victoria.
@@ -763,7 +766,7 @@
 	output: r0 -> -1 perdió, 0 tiene otra vida, 1 ganó. */
 	controlar_pregunta:
 	.fnstart
-		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
 		ldr r3, =vidas
 		ldr r4, =m_vida_extra
 		ldr r5, =m_respuesta_correcta
@@ -779,7 +782,7 @@
 		beq dar_vida_extra
 			// Le decimos que falló.
 			mov r1, r6
-			mob r2, #T_MENSAJE_R_INCORRECTA
+			mov r2, #T_MENSAJE_R_INCORRECTA
 			
 			bal termina_controlar_pregunta
 		
@@ -801,7 +804,7 @@
 	
 		termina_controlar_pregunta:
 		mov r0, r7
-		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
 
@@ -921,18 +924,18 @@
 
 		//Mensaje que introduce la pregunta
 		ldr r1,=m_pregunta
-		mov r2,#74
+		mov r2, #T_MENSAJE_EXPLICACION
 		bl imprStr
 				
 		//Presentamos la pregunta
 		ldr r1,=pregunta_1
-		mov r2,#47
+		mov r2, #T_MENSAJE_PREGUNTA
 		bl imprStr 
 
 		//Guardamos la respuesta del usuario 
 		mov r7,#3
 		mov r0,#0
-		mov r2,#4
+		mov r2,#5
 		ldr r1,=resp_usuario
 		swi 0 
 
