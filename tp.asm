@@ -60,6 +60,9 @@
 	m_fallo: .ascii "Fallaste. -1 punto.\n"
 	.equ T_MENSAJE_FALLO, 20
 
+	m_fallo_casillas: .ascii "No elijas casillas iguales! \n"
+	.equ T_MENSAJE_FALLO_CASILLAS,29 
+
 	.equ T_MENSAJE_VICTORIA, 22
 	m_victoria: .ascii "Felicidades, ganaste!\n"
 	
@@ -360,7 +363,14 @@
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 		.fnend
-		
+
+	/* compara dos indices y se fija que sean distintos
+	r1: indice 1
+	r2: indice 2
+		*/ 
+
+
+
 	/* Compara dos caracteres y devuelve 1 si son iguales.
 	inputs:
 		r1: caracter a.
@@ -911,14 +921,15 @@
 	output: - */
 	controlar_fallo:
 	.fnstart
-		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		push {r0, r1, r2, r3, r4, r5, r6, r7,r8, lr}
 		ldr r1, =errores
 		ldr r2, =figura_1
 		ldr r3, =figura_2
 		ldr r4, =puntaje_actual
 		ldr r5, =vidas
 		ldr r7, =m_fallo
-		
+		ldr r8, =m_fallo_casillas
+
 		// Incrementamos la cantidad de errores.
 		mov r0, r1
 		bl incrementar_y_guardar
@@ -940,13 +951,25 @@
 		sub r6, #1
 		strb r6, [r5]
 		
-
 		// Mostramos un mensaje por el fallo.
 		mov r1, r7
 		mov r2, #T_MENSAJE_FALLO
 		bl imprStr
-		
-		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+
+		//Nos fijamos si el error es por elegir la misma casilla. 
+		ldr r2,=figura_1
+		ldrb r2,[r2]
+		ldrb r3,[r3]
+		cmp r2, r3
+		bne fin_control_error
+
+		//es la misma casilla
+		mov r1, r8
+		mov r2, #T_MENSAJE_FALLO_CASILLAS
+		bl imprStr
+
+		fin_control_error:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7,r8, lr}
 		bx lr
 	.fnend
 
@@ -1379,7 +1402,7 @@
 			ldr r5, =figura_1
 			ldrb r0, [r5]	// Indice figura 1.
 			bl buscarFig	// Buscamos el caracter en sí.
-			push {r1}		// Guardamos el caracter temporalmente.
+			push {r1}		// Guardamos el caracter temporalmente			
 
 			ldr r6, =figura_2
 			ldrb r0, [r6]	// Indice figura 2.
@@ -1388,6 +1411,14 @@
 			mov r2, r1		// Movemos la figura 2 a r2.
 			pop {r1}		// Recuperamos la figura 1.
 			
+			//Comparamos los indices para cubrir que no se haya seleccionado dos veces el mismo. Si lo hace, tiene un error
+			 ldr r3, =figura_1
+			 ldr r4, =figura_2
+			 ldrb r3,[r3]
+			 ldrb r4,[r4]
+			 cmp r3,r4
+			 beq fallo
+
 			// Comparamos los caracteres.
 			bl comparar_caracter
 			// Vemos si son iguales.
