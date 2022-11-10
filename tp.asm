@@ -122,6 +122,13 @@
 
 	.equ RANGO_DE_ERROR, 75
 
+
+	// Variables para generación de números random.
+	seed: .word 1
+	const1: .word 1103515245
+	const2: .word 12345
+	numero: .word 0
+
 .text
 
 	/* Imprime la matriz del mapa de manera bonita.
@@ -1130,6 +1137,64 @@
 		bx lr
 
 		.fnend
+
+
+	/* ------------------------ GENERACIÓN NÚMEROS RANDOM ------------------------ */
+	/* Devuelve un número aleatorio.
+	input: -
+	output: r0 -> número aleatorio. */
+	myrand:
+	.fnstart
+		push {r1, r2, r3, lr}
+		ldr r1, =seed @ leo puntero a semilla
+		ldr r0, [ r1 ] @ leo valor de semilla
+        ldr r2, =const1
+		ldr r2, [ r2 ] @ leo const1 en r2
+		mul r3, r0, r2 @ r3= seed * 1103515245
+		ldr r0, =const2
+		ldr r0, [ r0 ] @ leo const2 en r0
+		add r0, r0, r3 @ r0= r3+ 12345
+		str r0, [ r1 ] @ guardo en variable seed
+		/* Estas dos líneas devuelven "seed > >16 & 0x7fff ".
+		Con un peque ñotruco evitamos el uso del AND */
+		LSL r0, # 1
+		LSR r0, # 17
+		pop {r1, r2, r3, lr}
+		bx lr
+	.fnend
+	/* Carga una semilla para generar números aleatorios.
+	input: r0 <- semilla.
+	output: - */
+	mysrand:
+	.fnstart
+		push {r0, r1, lr}
+		ldr r1, =seed
+		str r0, [ r1 ]
+		pop {r0, r1, lr}
+		bx lr
+	.fnend
+
+	/* Devuelve un número aleatorio en el rango 0-99.
+	input: -
+	output: r0 <- número aleatorio. */
+	rand_99:
+	.fnstart
+		push {r1, r2, r3, lr}
+		bl myrand
+
+		// Realizamos restas sucesivas en un número random
+		// para obtener el resto de dividir por 100.
+		restar_100:
+			cmp r0, #100
+			blt terminar_rand
+
+			sub r0, #100
+			bal restar_100
+
+		terminar_rand:
+		pop {r1, r2, r3, lr}
+		bx lr
+	.fnend
 
 
 	.global main
