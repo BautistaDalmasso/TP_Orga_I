@@ -56,6 +56,12 @@
 
 	.equ T_MENSAJE_VIDA_EXTRA,31
 	m_vida_extra: .ascii "Cerca! Te damos una vida extra\n"
+	
+	.equ T_MENSAJE_R_CORRECTA, 11
+	m_respuesta_correcta: .ascii "Acertaste!\n"
+	
+	.equ T_MENSAJE_R_INCORRECTA, 13
+	m_respuesta_incorrecta: .ascii "Ni de cerca!\n"
 
 	.equ T_MENSAJE_REINICIO, 39
 	m_reinicio: .ascii "¿Quiere iniciar un nuevo juego? (Y/n): "
@@ -640,25 +646,6 @@
 				mov r2, #T_MENSAJE_DERROTA
 				bl imprStr
 
-				//INVENTO ASHUDAAAAA
-				
-				bl pregunta_Al_Rescate
-				//aca sale => r3: 0, si tiene una vida mas, 1: si gana el juego, -1: si perdio definitivamente
-				cmp r7,#1
-				beq gano
-				//si no gano, pero estuvo en rango
-				cmp r7,#0
-				beq vidaExtra
-				mov r1, r4
-				mov r2, #T_MENSAJE_DERROTA
-				bal termina_i_r
-
-			vidaExtra:
-				mov r1,r4
-				mov r2, #T_MENSAJE_VIDA_EXTRA
-				bl imprStr
-				bal termina_i_r
-
 			gano:
 				// Mostrar mensaje de victoria.
 				mov r1, r3
@@ -766,6 +753,54 @@
 		sub r6, #1
 		strb r6, [r5]
 		
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	
+	/* Controla el uso de una pregunta al rescate.
+	input: -
+	output: r0 -> -1 perdió, 0 tiene otra vida, 1 ganó. */
+	controlar_pregunta:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r3, =vidas
+		ldr r4, =m_vida_extra
+		ldr r5, =m_respuesta_correcta
+		ldr r6, =m_respuesta_incorrecta
+		
+		// Hacemos la pregunta.
+		bl pregunta_Al_Rescate
+		
+		cmp r7, #1
+		beq gano_por_pregunta
+		
+		cmp r7, #0
+		beq dar_vida_extra
+			// Le decimos que falló.
+			mov r1, r6
+			mob r2, #T_MENSAJE_R_INCORRECTA
+			
+			bal termina_controlar_pregunta
+		
+		gano_por_pregunta:
+			// Lo felicitamos por acertar.
+			mov r1, r5
+			mov r2, #T_MENSAJE_R_CORRECTA
+			bal termina_controlar_pregunta
+	
+		dar_vida_extra:
+			// Le damos otra vida.
+			mov r0, r3
+			bl incrementar_y_guardar
+			
+			// Le informamos que estuvo cerca.
+			mov r1, r4
+			mov r2, #T_MENSAJE_VIDA_EXTRA
+			bl imprStr
+	
+		termina_controlar_pregunta:
+		mov r0, r7
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
@@ -1025,14 +1060,25 @@
 				cmp r0, #0
 				beq INICIO_TURNO
 				
-				// TERMINO EL JUEGO:
-				bl informar_resultado
-				
-				bl guardar_puntaje
-				
-				bl consultar_reinicio
+				// Si es 1, el jugador ganó y nos salteamos la pregunta.
 				cmp r0, #1
-				beq INICIO_JUEGO
+				beq fin_juego
+
+					// Como perdió, le hacemos la pregunta de rescate.
+					bl controlar_pregunta
+					// Si el resultado es 0, el jugador tiene una nueva vida así que vamos al siguiente turno.
+					cmp r0, #0
+					beq INICIO_TURNO
+				
+				// TERMINO EL JUEGO:
+				fin_juego:
+					bl informar_resultado
+					
+					bl guardar_puntaje
+					
+					bl consultar_reinicio
+					cmp r0, #1
+					beq INICIO_JUEGO
 		salir:
 			mov r7, #1
 			swi 0
