@@ -87,6 +87,7 @@
 	respuesta_1: .hword 1950
 	resp_usuario: .ascii "0000"
 
+	.equ RANGO_DE_ERROR, 75
 
 .text
 
@@ -884,7 +885,6 @@
 		push {r0, r1, r2, r3, r4, r5, r6, lr}
 
 		//Mensaje que introduce la pregunta
-
 		ldr r1,=m_pregunta
 		mov r2,#74
 		bl imprStr
@@ -909,40 +909,36 @@
 		ldr r2,=respuesta_1
 	   	ldrh r2,[r2]
 
-		//Comparamos 
-		cmp r3,r2
-		beq correcto 
-		bal rango1 
-
-		//Parte del rango1 
-		rango1:
-		sub r3,#100
-		cmp  r2, r3
-		bge rango2
-		bal incorrecto
-
-		//Parte del rango2
-		rango2:
-		add r3,#200
-		cmp r3,r2
-		bge enRango
-		bal incorrecto
+		// Restamos los valores para comparar la diferencia más facilmente.
+		subs r3, r2
+		
+		// Si la resta dió 0 es porque acertó,
+		cmp r3, #0
+		beq correcto
+		
+		// La distancia es: abs(respuestaUsr-respuestaReal)
+		// Valor absoluto quiere decir que la resta debe estar en el intervalo:
+		// -RANGO_DE_ERROR < resta < RANGO_DE_ERROR
+		cmp r3, #-RANGO_DE_ERROR
+		blt incorrecto
+		cmp r3, #RANGO_DE_ERROR
+		bgt incorrecto
 
 		//Respuesta cumple el rango
 		enRango:
-		mov r7,#0
-		bal out
+			mov r7,#0
+			bal salir_pregunta
 
 		//Respondio correcta
 		correcto: 
-		mov r7,#1
-		bal out
+			mov r7,#1
+			bal salir_pregunta
 
 		//Respuesta incorrecta
 		incorrecto:
-		mov r7,#-1
+			mov r7,#-1
 
-		out:
+		salir_pregunta:
 		pop {r0, r1, r2, r3, r4, r5, r6, lr}
 		bx lr
 
