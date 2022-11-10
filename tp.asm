@@ -1332,7 +1332,15 @@
 		INICIO_JUEGO:
 			// Preparar todo para un nuevo juego.
 			bl ocultar_mapa
-			// TODO: generar mapa de forma aleatoria.
+			
+			// Cambiamos la semilla del mapa (si no se generaria siempre el mismo).
+			ldr r0, =seed
+			ldrb r1, [r0]
+			add r1, #31
+			strb r1, [r0]
+			// Generamos un nuevo mapa aleatorio.
+			bl generar_mapa
+
 			bl reiniciar_estadisticas
 			
 			// PARA DEBUGEAR:
