@@ -76,7 +76,7 @@
 	ptr_vector_puntaje: .byte 0					// Puntero del último puntaje en ser cargado.
 	
 	.equ DISTANCIA_ENTRE_PUNTAJES, 6
-	.equ INDICE_MAXIMO_PUNTAJE, 24				// El valor maximo del puntero.
+	.equ INDICE_MAXIMO_PUNTAJE, 25				// El valor maximo del puntero.
 	
 	puntaje_actual: .byte 15					// Puntaje de la ronda actual.
 	.equ PUNTAJE_BASE, 15						// El puntaje con el que se inicia es 15.
@@ -833,7 +833,7 @@
 			// Se paso del máximo así que reiniciamos los punteros.
 			// Puntero del vector.
 			mov r3, #0
-			str r3, [r6]
+			strb r3, [r6]
 			// Puntero del string.
 			mov r3, #1
 			strb r3, [r2]
