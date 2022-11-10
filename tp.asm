@@ -53,6 +53,9 @@
 	.equ T_MENSAJE_DERROTA, 10
 	m_derrota: .ascii "PERDISTE.\n"
 
+	.equ T_MENSAJE_VIDA_EXTRA,31
+	m_vida_extra: .ascii "Cerca! Te damos una vida extra\n"
+
 	.equ T_MENSAJE_REINICIO, 39
 	m_reinicio: .ascii "¿Quiere iniciar un nuevo juego? (Y/n): "
 	reinicio_respuesta: .ascii "  "
@@ -76,6 +79,12 @@
 	.equ APV, 5		// Aciertos para victoria.
 	.equ EPD, 15	// Errores para derrota.
 	.equ INM, 5		// Intentos nulos maximos.
+
+	//Pregunta para vida o ganar el juego
+	m_pregunta: .ascii "Si acertas la pregunta ganas, si te aproximas tenes una oportunidad más: \n"
+	pregunta_1: .ascii "¿En qué año se publico el codigo Hamming?\n"
+	respuesta_1: .hword 1950
+	resp_usuario: .hword 0000
 
 
 .text
@@ -611,7 +620,7 @@
 		.fnend
 
 		
-		/* Muestra un mensaje al jugador cuando gana o pierde.
+				/* Muestra un mensaje al jugador cuando gana o pierde.
 		input: r0 - 1 si ganó.
 		output: -
 		*/
@@ -629,7 +638,25 @@
 				mov r1, r4
 				mov r2, #T_MENSAJE_DERROTA
 				bl imprStr
+
+				//INVENTO ASHUDAAAAA
+				
+				bl pregunta_Al_Rescate
+				//aca sale => r3: 0, si tiene una vida mas, 1: si gana el juego, -1: si perdio definitivamente
+				cmp r7,#1
+				beq gano
+				//si no gano, pero estuvo en rango
+				cmp r7,#0
+				beq vidaExtra
+				mov r1, r4
+				mov r2, #T_MENSAJE_DERROTA
 				bal termina_i_r
+
+			vidaExtra:
+			mov r1,r4
+			mov r2, #T_MENSAJE_VIDA_EXTRA
+			bl imprStr
+			bal termina_i_r
 
 			gano:
 				// Mostrar mensaje de victoria.
@@ -641,47 +668,6 @@
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 			bx lr
 		.fnend
-
-
-	/* Pregunta al usuario si quiere reiniciar el juego.
-	input: -
-	output: r0 - 1 si hay que reiniciar el juego, 0 si hay que salir.
-	*/
-	consultar_reinicio:
-	.fnstart
-		push {r1, r2, r3, r4, r5, r6, r7, lr}
-		ldr r3, =m_reinicio
-		ldr r4, =reinicio_respuesta
-		
-		// Muestra consulta de reinicio:
-		mov r1, r3
-		mov r2, #T_MENSAJE_REINICIO
-		bl imprStr
-		
-		// Pide input:
-		mov r7, #3
-		mov r0, #0
-		mov r2, #2
-		mov r1, r4
-		swi 0
-		
-		// Ve si la respuesta es afirmativa.
-		ldrb r1, [r4]
-		cmp r1, #'Y'
-		beq reinicio_afirmativo
-		
-			mov r0, #0
-			bal termina_consultar
-	
-		reinicio_afirmativo:
-			mov r0, #1
-			
-			bl mostrar_puntajes		// También mostramos los puntajes.
-		
-		termina_consultar:
-		pop {r1, r2, r3, r4, r5, r6, r7, lr}
-		bx lr
-	.fnend
 
 	
 	/* Controla lo que sucede cuando un usuario acierta.
@@ -784,6 +770,116 @@
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
+
+	//PREGUNTA PARA: GANAR EL JUEGO, GANAR VIDA O PERDER DEFINITIVAMENTE 
+
+	/* Esta funcion pasa un ascii de 4 caracteres a numero
+    input= r1 <-- direccion del numero ascii en memoria
+    output= r3 <-- numero */
+    deAscii_A_Num:
+	.fnstart
+    	push { r0, r1, r2, r4, r5, r6, r7, lr}
+    	mov r3,#0
+		//traemos la unidad de mil y la multiplicamos por 1000 
+    	ldrb r0,[r1]
+    	sub r0,#0x30
+       	mov r5,#1000  
+       	mul r0,r5
+       	add r3,r0
+		//traemos la centena y la multiplicamos por 100
+		ldrb r0,[r1,#1]
+		sub r0,#0x30
+		mov r5,#100
+		mul r0,r5
+		add r3,r0
+		//traemos la decena y la multiplicamos por 10
+		ldrb r0,[r1,#2]
+		sub r0,#0x30
+		mov r5,#10
+		mul r0,r5
+		add r3,r0
+		//traemos la unidad y solo la sumamos a r3 que es el acumulador-resultado
+		ldrb r0,[r1,#3]
+		sub r0,#0x30
+		add r3,r0
+		pop { r0, r1, r2, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	/* Realiza el proceso de pregunta-respuesta que salva al jugador. 
+	Si acierta precisamente el jugador gana, si se encuentra en un intervalo
+	la respuesta, se le otorga una vida mas
+	input: -
+	output: r7 <-- -1: incorrecto, 0: se aproximo, 1: correcto */
+	pregunta_Al_Rescate:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, lr}
+
+		//Mensaje que introduce la pregunta
+
+		ldr r1,=m_pregunta
+		mov r2,#74
+		bl imprStr
+				
+		//Presentamos la pregunta
+		ldr r1,=pregunta_1
+		mov r2,#47
+		bl imprStr 
+
+		//Guardamos la respuesta del usuario 
+		mov r7,#3
+		mov r0,#0
+		mov r2,#4
+		ldr r1,=resp_usuario
+		swi 0 
+
+		//Traemos de memoria la respuesta del usuario y la convertimos en numero
+		ldr r1,=resp_usuario
+		bl deAscii_A_Num
+
+		// Traemos la respuesta real de memoria para compararla
+		ldr r2,=respuesta_1
+	   	ldrh r2,[r2]
+
+		//Comparamos 
+		cmp r3,r2
+		beq correcto 
+		bal rango1 
+
+		//Parte del rango1 
+		rango1:
+		sub r3,#100
+		cmp  r2, r3
+		bge rango2
+		bal incorrecto
+
+		//Parte del rango2
+		rango2:
+		add r3,#200
+		cmp r3,r2
+		bge enRango
+		bal incorrecto
+
+		//Respuesta cumple el rango
+		enRango:
+		mov r7,#0
+		bal out
+
+		//Respondio correcta
+		correcto: 
+		mov r7,#1
+		bal out
+
+		//Respuesta incorrecta
+		incorrecto:
+		mov r7,#-1
+
+		out:
+		pop {r0, r1, r2, r3, r4, r5, r6, lr}
+		bx lr
+
+		.fnend
+
 
 	.global main
 	main:
