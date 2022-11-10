@@ -15,7 +15,9 @@
 	aciertos: .byte 0
 	errores: .byte 0
 	nulos: .byte 0
+
 	vidas: .byte 15
+	.equ VIDAS_BASE, 15
 
 	// En forma de string:
 	m_aciertos: .ascii "Nº de aciertos: "
@@ -509,6 +511,7 @@
 			ldr r1, =errores
 			ldr r2, =nulos
 			ldr r4, =puntaje_actual
+			ldr r5, =vidas
 		
 			// Las reiniciamos a sus valores originales.
 			mov r3, #0
@@ -522,6 +525,10 @@
 			mov r3, #PUNTAJE_BASE
 			strb r3, [r4]
 
+			// Reiniciamos las vidas.
+			mov r3, #VIDAS_BASE
+			strb r3, [r5]
+	
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 			bx lr
 		.fnend
@@ -1110,6 +1117,10 @@
 
 	.global main
 	main:
+		/* Nos salteamos la preparación del juego la primera vez que se
+		ejecuta el programa (para hacer más facil el debugeo). */
+		bal INICIO_TURNO
+	
 		INICIO_JUEGO:
 			// Preparar todo para un nuevo juego.
 			bl ocultar_mapa
