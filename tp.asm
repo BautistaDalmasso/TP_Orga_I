@@ -1,6 +1,8 @@
 .data
 	mat_revelada: .ascii "  #   #     (   (        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
+	
+	figuras: .ascii "##((&&%%==!!//~~@@))"
 
 	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
 
@@ -122,6 +124,13 @@
 
 	.equ RANGO_DE_ERROR, 75
 
+
+	// Variables para generación de números random.
+	seed: .word 1
+	const1: .word 1103515245
+	const2: .word 12345
+	numero: .word 0
+
 .text
 
 	/* Imprime la matriz del mapa de manera bonita.
@@ -133,6 +142,65 @@
 		/* Guardamos las posiciones de memoria de todos los caracteres que vamos a imprimir. */
 		ldr r5, =c_y	// Posición de la coordenada y para imprimir.
 		ldr r4, =mat_mapa // Posición del caracter del mapa a imprimir.
+
+		// Imprimir eje x.
+		ldr r1, =cords_x // Lista de coordenadas x para imprimir.
+		mov r2, #21		 // Tamaño de la cadena.
+		bl imprStr
+
+		mov r3, #0x30	// Coordenada Y en ascii.
+
+		// Ciclo para imprimir filas.
+		ciclo_y_d:
+			ldr r1, =cr
+			bl imprChar	// Imprimimos un salto de línea.
+
+			// Cargamos el valor ascii de la coordenada y en c_y.
+			strb r3, [r5]
+			// Imprimimos el número de la coordenada y.
+			mov r1, r5
+			bl imprChar
+
+			// Ciclo para imprimir caracteres individuales por columna.
+			mov r6, #0		// Guardamos la cantidad de caracteres que imprimimos esta fila.
+			ciclo_x_d:
+				ldr r1, =spc
+				bl imprChar	// Imprimimos un espacio.
+
+				mov r1, r4	// Imprimimos el caracter del mapa que sigue:
+				bl imprChar
+
+				add r6, #1
+				add r4, #1	// Avanzamos al siguiente valor del mapa.
+
+				// Si imprimimos menos de 10 caracteres continuamos con el ciclo.
+				cmp r6, #10
+				blt ciclo_x_d
+
+			add r3, #0x1 // Pasamos al siguiente valor de Y.
+
+			// Si no imprimimos los números del 0 al 9, repetimos el ciclo.
+			cmp r3, #0x3a
+			blt ciclo_y_d
+
+		// Imprime un separador.
+		ldr r1, =separador
+		mov r2, #23
+		bl imprStr
+
+		pop {r0, r1, r2, r3, r4, r5, r7, lr}
+		bx lr
+		.fnend
+
+	/* Imprime el mapa revelado completamente. Solo para debugear.
+	inputs: -
+	outputs: - */
+	imprimir_mapa_debugueable:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r7, lr}
+		/* Guardamos las posiciones de memoria de todos los caracteres que vamos a imprimir. */
+		ldr r5, =c_y	// Posición de la coordenada y para imprimir.
+		ldr r4, =mat_revelada // Posición del caracter del mapa a imprimir.
 
 		// Imprimir eje x.
 		ldr r1, =cords_x // Lista de coordenadas x para imprimir.
@@ -181,7 +249,7 @@
 
 		pop {r0, r1, r2, r3, r4, r5, r7, lr}
 		bx lr
-		.fnend
+	.fnend
 
 	/* Imprime un unico caracter
 	inputs: 
@@ -1132,8 +1200,131 @@
 		.fnend
 
 
+	/* ------------------------ GENERACIÓN NÚMEROS RANDOM ------------------------ */
+	/* Devuelve un número aleatorio.
+	input: -
+	output: r0 -> número aleatorio. */
+	myrand:
+	.fnstart
+		push {r1, r2, r3, lr}
+		ldr r1, =seed @ leo puntero a semilla
+		ldr r0, [ r1 ] @ leo valor de semilla
+        ldr r2, =const1
+		ldr r2, [ r2 ] @ leo const1 en r2
+		mul r3, r0, r2 @ r3= seed * 1103515245
+		ldr r0, =const2
+		ldr r0, [ r0 ] @ leo const2 en r0
+		add r0, r0, r3 @ r0= r3+ 12345
+		str r0, [ r1 ] @ guardo en variable seed
+		/* Estas dos líneas devuelven "seed > >16 & 0x7fff ".
+		Con un peque ñotruco evitamos el uso del AND */
+		LSL r0, # 1
+		LSR r0, # 17
+		pop {r1, r2, r3, lr}
+		bx lr
+	.fnend
+	/* Carga una semilla para generar números aleatorios.
+	input: r0 <- semilla.
+	output: - */
+	mysrand:
+	.fnstart
+		push {r0, r1, lr}
+		ldr r1, =seed
+		str r0, [ r1 ]
+		pop {r0, r1, lr}
+		bx lr
+	.fnend
+
+	/* Devuelve un número aleatorio en el rango 0-99.
+	input: -
+	output: r0 <- número aleatorio. */
+	rand_99:
+	.fnstart
+		push {r1, r2, r3, lr}
+		bl myrand
+
+		// Realizamos restas sucesivas en un número random
+		// para obtener el resto de dividir por 100.
+		restar_100:
+			cmp r0, #100
+			blt terminar_rand
+
+			sub r0, #100
+			bal restar_100
+
+		terminar_rand:
+		pop {r1, r2, r3, lr}
+		bx lr
+	.fnend
+	/* ------------------- GENERACIÓN DE MAPA RANDOM ------------------- */
+	/* "Limpia" la matriz revelada, dejandola solo con ' '
+	input: -
+	output: - */
+	limpiar_figuras:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r0, =mat_revelada
+		
+		mov r1, #' '	// Caracter con el que vamos a llenar la matriz.
+		mov r2, #0		// Contador de indice.
+		ciclo_limpiador:
+			// Vemos si recorrimos toda la matriz.
+			cmp r2, #100
+			bge termina_limpieza
+			
+			// Guardamos ' ' en el caracter actual.
+			strb r1, [r0, r2]
+			
+			// Aumentamos el contador.
+			add r2, #1
+			
+			bal ciclo_limpiador
+			
+		termina_limpieza:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+	
+	/* Llena la matriz revelada con 20 figuras (10 pares)
+	input: -
+	output: - */
+	generar_mapa:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r2, =mat_revelada
+		ldr r3, =figuras
+
+		bl limpiar_figuras	// Dejamos la matriz vacía antes de llenarla.
+		
+		mov r4, #0			// Contador de figura actual.
+		ciclo_llenador:
+			cmp r4, #20
+			bge termina_generar
+			
+			ldrb r5, [r3, r4]	// Cargamos la figura que tiene que ser insertada.
+
+			bl rand_99			// Generamos un indice para la figura.
+			
+			ldrb r6, [r2, r0]	// Cargamos el caracter que esté en el indice generado.
+			
+			cmp r6, #' '
+			bne ciclo_llenador	// Si la posición no esta vacia debemos generar otra.
+				strb r5, [r2, r0]	// Como estaba vacía, cargamos la figura.
+				add r4, #1			// Pasamos a la siguiente figura.
+				bal ciclo_llenador	// Continuamos cargando.
+
+		
+		termina_generar:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
 	.global main
 	main:
+		// Ingresamos una semilla para generación random.
+		mov r0, #59
+		bl mysrand
+	
 		/* Nos salteamos la preparación del juego la primera vez que se
 		ejecuta el programa (para hacer más facil el debugeo). */
 		bal INICIO_TURNO
@@ -1141,9 +1332,20 @@
 		INICIO_JUEGO:
 			// Preparar todo para un nuevo juego.
 			bl ocultar_mapa
-			// TODO: generar mapa de forma aleatoria.
+			
+			// Cambiamos la semilla del mapa (si no se generaria siempre el mismo).
+			ldr r0, =seed
+			ldrb r1, [r0]
+			add r1, #31
+			strb r1, [r0]
+			// Generamos un nuevo mapa aleatorio.
+			bl generar_mapa
+
 			bl reiniciar_estadisticas
 			
+			// PARA DEBUGEAR:
+			// bl imprimir_mapa_debugueable
+
 		INICIO_TURNO:
 			bl imprMapa
 			bl actualizar_informar_valores
