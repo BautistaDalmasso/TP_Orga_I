@@ -1,6 +1,8 @@
 .data
 	mat_revelada: .ascii "  #   #     (   (        &          %           &  %             =    !     /      ~~  @= @  / !    "
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
+	
+	figuras: .ascii "##((&&%%==!!//~~@@))"
 
 	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
 
@@ -1195,10 +1197,78 @@
 		pop {r1, r2, r3, lr}
 		bx lr
 	.fnend
+	/* ------------------- GENERACIÓN DE MAPA RANDOM ------------------- */
+	/* "Limpia" la matriz revelada, dejandola solo con ' '
+	input: -
+	output: - */
+	limpiar_figuras:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r0, =mat_revelada
+		
+		mov r1, #' '	// Caracter con el que vamos a llenar la matriz.
+		mov r2, #0		// Contador de indice.
+		ciclo_limpiador:
+			// Vemos si recorrimos toda la matriz.
+			cmp r2, #100
+			bge termina_limpieza
+			
+			// Guardamos ' ' en el caracter actual.
+			strb r1, [r0, r2]
+			
+			// Aumentamos el contador.
+			add r2, #1
+			
+			bal ciclo_limpiador
+			
+		termina_limpieza:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+	
+	/* Llena la matriz revelada con 20 figuras (10 pares)
+	input: -
+	output: - */
+	generar_mapa:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r2, =mat_revelada
+		ldr r3, =figuras
 
+		bl limpiar_figuras	// Dejamos la matriz vacía antes de llenarla.
+		
+		mov r4, #0			// Contador de figura actual.
+		ciclo_llenador:
+			cmp r4, #20
+			bge termina_generar
+			
+			ldrb r5, [r3, r4]	// Cargamos la figura que tiene que ser insertada.
+
+			bl rand_99			// Generamos un indice para la figura.
+			
+			ldrb r6, [r2, r0]	// Cargamos el caracter que esté en el indice generado.
+			
+			cmp r6, #' '
+			bne ciclo_llenador	// Si la posición no esta vacia debemos generar otra.
+				strb r5, [r2, r0]	// Como estaba vacía, cargamos la figura.
+				add r4, #1			// Pasamos a la siguiente figura.
+				bal ciclo_llenador	// Continuamos cargando.
+
+		
+		termina_generar:
+		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
 
 	.global main
 	main:
+		// Ingresamos una semilla para generación random.
+		mov r0, #53
+		bl mysrand
+		
+		bl generar_mapa
+		
+	
 		/* Nos salteamos la preparación del juego la primera vez que se
 		ejecuta el programa (para hacer más facil el debugeo). */
 		bal INICIO_TURNO
