@@ -519,6 +519,7 @@
 			ldr r4, =m_aciertos
 			ldr r5, =m_errores
 			ldr r6, =m_vidas
+			ldr r7, =m_puntaje_actual
 			
 			// Actualizamos los mensajes para mostrar los valores.
 			bl actualizar_mensajes
@@ -539,6 +540,10 @@
 			// Vidas.
 			mov r1, r6
 			mov r2, #TMV
+			bl imprStr
+			// Puntos
+			mov r1, r7
+			mov r2, #T_MENSAJE_PUNTOS_ACTUALES
 			bl imprStr
 			
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
@@ -568,6 +573,10 @@
 			
 			ldr r8, =sVidas
 			
+			ldr r9, =sPuntaje
+			ldr r10, =puntaje_actual
+			ldrb r10, [r10]
+			
 			// Actualizamos aciertos.
 			mov r0, r2
 			mov r1, r3
@@ -591,6 +600,11 @@
 			mov r0, #EPD
 			sub r0, r4
 			mov r1, r8
+			bl num_a_ascii
+			
+			// Actualizamos puntaje.
+			mov r0, r10
+			mov r1, r9
 			bl num_a_ascii
 			
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
