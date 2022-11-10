@@ -670,6 +670,47 @@
 		.fnend
 
 	
+	/* Pregunta al usuario si quiere reiniciar el juego.
+	input: -
+	output: r0 - 1 si hay que reiniciar el juego, 0 si hay que salir.
+	*/
+	consultar_reinicio:
+	.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r3, =m_reinicio
+		ldr r4, =reinicio_respuesta
+		
+		// Muestra consulta de reinicio:
+		mov r1, r3
+		mov r2, #T_MENSAJE_REINICIO
+		bl imprStr
+		
+		// Pide input:
+		mov r7, #3
+		mov r0, #0
+		mov r2, #2
+		mov r1, r4
+		swi 0
+		
+		// Ve si la respuesta es afirmativa.
+		ldrb r1, [r4]
+		cmp r1, #'Y'
+		beq reinicio_afirmativo
+		
+			mov r0, #0
+			bal termina_consultar
+	
+		reinicio_afirmativo:
+			mov r0, #1
+			
+			bl mostrar_puntajes		// También mostramos los puntajes.
+		
+		termina_consultar:
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+	
+	
 	/* Controla lo que sucede cuando un usuario acierta.
 	input: -
 	output: - */
