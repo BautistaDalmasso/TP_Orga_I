@@ -3,6 +3,9 @@
 	mat_mapa: .space 100, 0x3f	// Codigo ascii del caracter "?"
 	
 	figuras: .ascii "##((&&%%==!!//~~@@))"
+	
+	titulo: .ascii "*********************\n*     MEMO-TEST     *\n*********************\n"
+	.equ CARTEL, 66
 
 	cords_x: .ascii "  0 1 2 3 4 5 6 7 8 9"	// Eje de las x para imprimir.
 
@@ -139,6 +142,13 @@
 	imprMapa:
 		.fnstart
 		push {r0, r1, r2, r3, r4, r5, r7, lr}
+		
+		ldr r1, =titulo //traigo de direccion del string titulo
+		mov r2, #CARTEL
+		
+		bl imprStr
+		
+		
 		/* Guardamos las posiciones de memoria de todos los caracteres que vamos a imprimir. */
 		ldr r5, =c_y	// Posición de la coordenada y para imprimir.
 		ldr r4, =mat_mapa // Posición del caracter del mapa a imprimir.
