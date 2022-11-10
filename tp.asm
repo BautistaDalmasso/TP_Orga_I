@@ -103,6 +103,9 @@
 	
 	.equ PUNTOS_POR_ACIERTO, 5
 	.equ PENALIZACION_POR_ERROR, 1
+	
+	.equ PUNTOS_POR_PREGUNTA_ACERTADA, 15
+	.equ PUNTOS_POR_PREGUNTA_APROXIMADA, 1
 
 	// Constantes:
 	.equ APV, 5		// Aciertos para victoria.
@@ -890,6 +893,7 @@
 		ldr r4, =m_vida_extra
 		ldr r5, =m_respuesta_correcta
 		ldr r6, =m_respuesta_incorrecta
+		ldr r8, =puntaje_actual
 		
 		// Hacemos la pregunta.
 		bl pregunta_Al_Rescate
@@ -902,6 +906,7 @@
 			// Le decimos que falló.
 			mov r1, r6
 			mov r2, #T_MENSAJE_R_INCORRECTA
+			bl imprStr
 			
 			bal termina_controlar_pregunta
 		
@@ -909,6 +914,13 @@
 			// Lo felicitamos por acertar.
 			mov r1, r5
 			mov r2, #T_MENSAJE_R_CORRECTA
+			bl imprStr
+			
+			// Le sumamos puntos.
+			ldrb r1, [r8]
+			add r1, #PUNTOS_POR_PREGUNTA_ACERTADA
+			strb r1, [r8]
+			
 			bal termina_controlar_pregunta
 	
 		dar_vida_extra:
@@ -920,6 +932,11 @@
 			mov r1, r4
 			mov r2, #T_MENSAJE_VIDA_EXTRA
 			bl imprStr
+			
+			// Le sumamos puntos.
+			ldrb r1, [r8]
+			add r1, #PUNTOS_POR_PREGUNTA_APROXIMADA
+			strb r1, [r8]
 	
 		termina_controlar_pregunta:
 		mov r0, r7
