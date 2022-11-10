@@ -84,7 +84,7 @@
 	m_pregunta: .ascii "Si acertas la pregunta ganas, si te aproximas tenes una oportunidad más: \n"
 	pregunta_1: .ascii "¿En qué año se publico el codigo Hamming?\n"
 	respuesta_1: .hword 1950
-	resp_usuario: .hword 0000
+	resp_usuario: .ascii "0000"
 
 
 .text
@@ -620,7 +620,7 @@
 		.fnend
 
 		
-				/* Muestra un mensaje al jugador cuando gana o pierde.
+		/* Muestra un mensaje al jugador cuando gana o pierde.
 		input: r0 - 1 si ganó.
 		output: -
 		*/
@@ -653,10 +653,10 @@
 				bal termina_i_r
 
 			vidaExtra:
-			mov r1,r4
-			mov r2, #T_MENSAJE_VIDA_EXTRA
-			bl imprStr
-			bal termina_i_r
+				mov r1,r4
+				mov r2, #T_MENSAJE_VIDA_EXTRA
+				bl imprStr
+				bal termina_i_r
 
 			gano:
 				// Mostrar mensaje de victoria.
@@ -779,29 +779,50 @@
     deAscii_A_Num:
 	.fnstart
     	push { r0, r1, r2, r4, r5, r6, r7, lr}
-    	mov r3,#0
-		//traemos la unidad de mil y la multiplicamos por 1000 
-    	ldrb r0,[r1]
-    	sub r0,#0x30
-       	mov r5,#1000  
-       	mul r0,r5
-       	add r3,r0
-		//traemos la centena y la multiplicamos por 100
-		ldrb r0,[r1,#1]
-		sub r0,#0x30
-		mov r5,#100
-		mul r0,r5
-		add r3,r0
-		//traemos la decena y la multiplicamos por 10
-		ldrb r0,[r1,#2]
-		sub r0,#0x30
-		mov r5,#10
-		mul r0,r5
-		add r3,r0
-		//traemos la unidad y solo la sumamos a r3 que es el acumulador-resultado
-		ldrb r0,[r1,#3]
-		sub r0,#0x30
-		add r3,r0
+    	mov r3,#0					// Acumulador con el resultado.
+		
+		mov r4, #0					// Contador del digito siendo guardado.
+
+		// Guardamos los digitos en el stack desde el más significativo al menos.
+		guardar_digitos:
+			// Vemos si terminamos de guardar 4 digitos.
+			cmp r4, #4
+			bge aplicar_tdn
+		
+			// Cargamos el digito en ascii.
+			ldrb r5, [r1, r4]
+			// Lo convertimos a su valor numerico.
+			sub r5, #0x30
+			// Lo guardamos temporalmente en el stack.
+			push {r5}
+			
+			add r4, #1				// Avanzamos al siguiente valor.
+			bal guardar_digitos		// Continuamos con el ciclo.
+		
+		aplicar_tdn:
+		mov r4, #0					// Contador de iteraciones.
+		mov r6, #1					// Coeficiente por el que se debe multiplicar el digito.
+		mov r7, #10					// En cada iteración el coeficiente se multiplica por 10.
+		ciclo_tdn:
+		// Ahora mediante el stack recuperamos los digitos del menos significativo hacia el más.
+			// Vemos si terminamos de acumular los 4 digitos.
+			cmp r4, #4
+			bge termina_aan
+			
+			// Recuperamos el digito.
+			pop {r5}
+			// Lo multiplicamos por su coeficiente asociado.
+			mul r5, r6
+			// Lo agregamos al acumulador de resultado.
+			add r3, r5
+			
+			// Pasamos al siguiente coeficiente.
+			mul r6, r7
+			add r4, #1
+			
+			bal ciclo_tdn
+			
+		termina_aan:
 		pop { r0, r1, r2, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
