@@ -151,6 +151,65 @@
 		mov r3, #0x30	// Coordenada Y en ascii.
 
 		// Ciclo para imprimir filas.
+		ciclo_y_d:
+			ldr r1, =cr
+			bl imprChar	// Imprimimos un salto de línea.
+
+			// Cargamos el valor ascii de la coordenada y en c_y.
+			strb r3, [r5]
+			// Imprimimos el número de la coordenada y.
+			mov r1, r5
+			bl imprChar
+
+			// Ciclo para imprimir caracteres individuales por columna.
+			mov r6, #0		// Guardamos la cantidad de caracteres que imprimimos esta fila.
+			ciclo_x_d:
+				ldr r1, =spc
+				bl imprChar	// Imprimimos un espacio.
+
+				mov r1, r4	// Imprimimos el caracter del mapa que sigue:
+				bl imprChar
+
+				add r6, #1
+				add r4, #1	// Avanzamos al siguiente valor del mapa.
+
+				// Si imprimimos menos de 10 caracteres continuamos con el ciclo.
+				cmp r6, #10
+				blt ciclo_x_d
+
+			add r3, #0x1 // Pasamos al siguiente valor de Y.
+
+			// Si no imprimimos los números del 0 al 9, repetimos el ciclo.
+			cmp r3, #0x3a
+			blt ciclo_y_d
+
+		// Imprime un separador.
+		ldr r1, =separador
+		mov r2, #23
+		bl imprStr
+
+		pop {r0, r1, r2, r3, r4, r5, r7, lr}
+		bx lr
+		.fnend
+
+	/* Imprime el mapa revelado completamente. Solo para debugear.
+	inputs: -
+	outputs: - */
+	imprimir_mapa_debugueable:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r7, lr}
+		/* Guardamos las posiciones de memoria de todos los caracteres que vamos a imprimir. */
+		ldr r5, =c_y	// Posición de la coordenada y para imprimir.
+		ldr r4, =mat_revelada // Posición del caracter del mapa a imprimir.
+
+		// Imprimir eje x.
+		ldr r1, =cords_x // Lista de coordenadas x para imprimir.
+		mov r2, #21		 // Tamaño de la cadena.
+		bl imprStr
+
+		mov r3, #0x30	// Coordenada Y en ascii.
+
+		// Ciclo para imprimir filas.
 		ciclo_y:
 			ldr r1, =cr
 			bl imprChar	// Imprimimos un salto de línea.
@@ -190,7 +249,7 @@
 
 		pop {r0, r1, r2, r3, r4, r5, r7, lr}
 		bx lr
-		.fnend
+	.fnend
 
 	/* Imprime un unico caracter
 	inputs: 
@@ -1263,11 +1322,8 @@
 	.global main
 	main:
 		// Ingresamos una semilla para generación random.
-		mov r0, #53
+		mov r0, #59
 		bl mysrand
-		
-		bl generar_mapa
-		
 	
 		/* Nos salteamos la preparación del juego la primera vez que se
 		ejecuta el programa (para hacer más facil el debugeo). */
@@ -1279,6 +1335,9 @@
 			// TODO: generar mapa de forma aleatoria.
 			bl reiniciar_estadisticas
 			
+			// PARA DEBUGEAR:
+			// bl imprimir_mapa_debugueable
+
 		INICIO_TURNO:
 			bl imprMapa
 			bl actualizar_informar_valores
