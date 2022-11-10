@@ -16,6 +16,9 @@
 	errores: .byte 0
 	nulos: .byte 0
 
+	vidas: .byte 15
+	.equ VIDAS_BASE, 15
+
 	// En forma de string:
 	m_aciertos: .ascii "Nº de aciertos: "
 	sAciertos: .ascii "00\n"
@@ -35,7 +38,7 @@
 
 	m_puntaje_actual: .ascii "Puntos: "
 	sPuntaje: .ascii "00\n"
-	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+4
+	.equ T_MENSAJE_PUNTOS_ACTUALES, 8+3
 
 	//Para pedirCoordenadas 
 
@@ -64,6 +67,15 @@
 	.equ T_MENSAJE_DERROTA, 10
 	m_derrota: .ascii "PERDISTE.\n"
 
+	.equ T_MENSAJE_VIDA_EXTRA,31
+	m_vida_extra: .ascii "Cerca! Te damos una vida extra\n"
+	
+	.equ T_MENSAJE_R_CORRECTA, 11
+	m_respuesta_correcta: .ascii "Acertaste!\n"
+	
+	.equ T_MENSAJE_R_INCORRECTA, 13
+	m_respuesta_incorrecta: .ascii "Ni de cerca!\n"
+
 	.equ T_MENSAJE_REINICIO, 39
 	m_reinicio: .ascii "¿Quiere iniciar un nuevo juego? (Y/n): "
 	reinicio_respuesta: .ascii "  "
@@ -91,12 +103,24 @@
 	
 	.equ PUNTOS_POR_ACIERTO, 5
 	.equ PENALIZACION_POR_ERROR, 1
+	
+	.equ PUNTOS_POR_PREGUNTA_ACERTADA, 15
+	.equ PUNTOS_POR_PREGUNTA_APROXIMADA, 1
 
 	// Constantes:
 	.equ APV, 5		// Aciertos para victoria.
 	.equ EPD, 15	// Errores para derrota.
 	.equ INM, 5		// Intentos nulos maximos.
 
+	//Pregunta para vida o ganar el juego
+	m_pregunta: .ascii "Si acertas la pregunta ganas, si te aproximas tenes una oportunidad más:\n"
+	.equ T_MENSAJE_EXPLICACION, 74
+	pregunta_1: .ascii "¿En qué año se publico el codigo Hamming?: "
+	.equ T_MENSAJE_PREGUNTA, 45
+	respuesta_1: .hword 1950
+	resp_usuario: .ascii "0000\n"
+
+	.equ RANGO_DE_ERROR, 75
 
 .text
 
@@ -381,7 +405,7 @@
 				push {r1, r2, r3, r4, r5, r6, r7, lr}
 				ldr r1, =aciertos
 				ldrb r1, [r1]
-				ldr r2, =errores
+				ldr r2, =vidas
 				ldrb r2, [r2]
 				
 				mov r0, #0
@@ -390,7 +414,7 @@
 				cmp r1, #APV
 				beq WIN
 				// Controlamos si perdío.
-				cmp r2, #EPD
+				cmp r2, #0
 				beq LOSS
 				bal TCE
 				
@@ -490,6 +514,7 @@
 			ldr r1, =errores
 			ldr r2, =nulos
 			ldr r4, =puntaje_actual
+			ldr r5, =vidas
 		
 			// Las reiniciamos a sus valores originales.
 			mov r3, #0
@@ -503,6 +528,10 @@
 			mov r3, #PUNTAJE_BASE
 			strb r3, [r4]
 
+			// Reiniciamos las vidas.
+			mov r3, #VIDAS_BASE
+			strb r3, [r5]
+	
 			pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
 			bx lr
 		.fnend
@@ -556,7 +585,7 @@
 		output: - */
 		actualizar_mensajes:
 		.fnstart
-			push {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
+			push {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, lr}
 			// Cargamos los valores actuales y los mensajes.
 			ldr r2, =aciertos
 			ldrb r2, [r2]
@@ -572,10 +601,11 @@
 			ldr r7, =sIntentos
 			
 			ldr r8, =sVidas
+			ldr r9, =vidas
 			
-			ldr r9, =sPuntaje
-			ldr r10, =puntaje_actual
-			ldrb r10, [r10]
+			ldr r10, =sPuntaje
+			ldr r11, =puntaje_actual
+			ldrb r11, [r11]
 			
 			// Actualizamos aciertos.
 			mov r0, r2
@@ -596,18 +626,16 @@
 			bl num_a_ascii
 			
 			// Actualizamos vidas.
-			// Vidas = errores para derrota - errores.
-			mov r0, #EPD
-			sub r0, r4
+			ldrb r0, [r9]
 			mov r1, r8
 			bl num_a_ascii
 			
 			// Actualizamos puntaje.
-			mov r0, r10
-			mov r1, r9
+			mov r0, r11
+			mov r1, r10
 			bl num_a_ascii
 			
-			pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, lr}
+			pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, lr}
 			bx lr
 		.fnend
 
@@ -678,6 +706,7 @@
 			bx lr
 		.fnend
 
+
 	/* Informa al usuario que obtuvo un nuevo record de ser necesario.
 	input: -
 	output: - */
@@ -740,6 +769,7 @@
 		bx lr
 	.fnend
 
+
 	/* Pregunta al usuario si quiere reiniciar el juego.
 	input: -
 	output: r0 - 1 si hay que reiniciar el juego, 0 si hay que salir.
@@ -779,7 +809,7 @@
 		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
-
+	
 	
 	/* Controla lo que sucede cuando un usuario acierta.
 	input: -
@@ -818,7 +848,8 @@
 		ldr r2, =figura_1
 		ldr r3, =figura_2
 		ldr r4, =puntaje_actual
-		ldr r5, =m_fallo
+		ldr r5, =vidas
+		ldr r7, =m_fallo
 		
 		// Incrementamos la cantidad de errores.
 		mov r0, r1
@@ -836,12 +867,80 @@
 		sub r0, #PENALIZACION_POR_ERROR
 		strb r0, [r4]
 		
+		// Le restamos una vida.
+		ldrb r6, [r5]
+		sub r6, #1
+		strb r6, [r5]
+		
+
 		// Mostramos un mensaje por el fallo.
-		mov r1, r5
+		mov r1, r7
 		mov r2, #T_MENSAJE_FALLO
 		bl imprStr
 		
 		pop {r0, r1, r2, r3, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	
+	/* Controla el uso de una pregunta al rescate.
+	input: -
+	output: r0 -> -1 perdió, 0 tiene otra vida, 1 ganó. */
+	controlar_pregunta:
+	.fnstart
+		push {r1, r2, r3, r4, r5, r6, r7, lr}
+		ldr r3, =vidas
+		ldr r4, =m_vida_extra
+		ldr r5, =m_respuesta_correcta
+		ldr r6, =m_respuesta_incorrecta
+		ldr r8, =puntaje_actual
+		
+		// Hacemos la pregunta.
+		bl pregunta_Al_Rescate
+		
+		cmp r7, #1
+		beq gano_por_pregunta
+		
+		cmp r7, #0
+		beq dar_vida_extra
+			// Le decimos que falló.
+			mov r1, r6
+			mov r2, #T_MENSAJE_R_INCORRECTA
+			bl imprStr
+			
+			bal termina_controlar_pregunta
+		
+		gano_por_pregunta:
+			// Lo felicitamos por acertar.
+			mov r1, r5
+			mov r2, #T_MENSAJE_R_CORRECTA
+			bl imprStr
+			
+			// Le sumamos puntos.
+			ldrb r1, [r8]
+			add r1, #PUNTOS_POR_PREGUNTA_ACERTADA
+			strb r1, [r8]
+			
+			bal termina_controlar_pregunta
+	
+		dar_vida_extra:
+			// Le damos otra vida.
+			mov r0, r3
+			bl incrementar_y_guardar
+			
+			// Le informamos que estuvo cerca.
+			mov r1, r4
+			mov r2, #T_MENSAJE_VIDA_EXTRA
+			bl imprStr
+			
+			// Le sumamos puntos.
+			ldrb r1, [r8]
+			add r1, #PUNTOS_POR_PREGUNTA_APROXIMADA
+			strb r1, [r8]
+	
+		termina_controlar_pregunta:
+		mov r0, r7
+		pop {r1, r2, r3, r4, r5, r6, r7, lr}
 		bx lr
 	.fnend
 
@@ -907,8 +1006,138 @@
 		bx lr
 	.fnend
 
+	//PREGUNTA PARA: GANAR EL JUEGO, GANAR VIDA O PERDER DEFINITIVAMENTE 
+
+	/* Esta funcion pasa un ascii de 4 caracteres a numero
+    input= r1 <-- direccion del numero ascii en memoria
+    output= r3 <-- numero */
+    deAscii_A_Num:
+	.fnstart
+    	push { r0, r1, r2, r4, r5, r6, r7, lr}
+    	mov r3,#0					// Acumulador con el resultado.
+		
+		mov r4, #0					// Contador del digito siendo guardado.
+
+		// Guardamos los digitos en el stack desde el más significativo al menos.
+		guardar_digitos:
+			// Vemos si terminamos de guardar 4 digitos.
+			cmp r4, #4
+			bge aplicar_tdn
+		
+			// Cargamos el digito en ascii.
+			ldrb r5, [r1, r4]
+			// Lo convertimos a su valor numerico.
+			sub r5, #0x30
+			// Lo guardamos temporalmente en el stack.
+			push {r5}
+			
+			add r4, #1				// Avanzamos al siguiente valor.
+			bal guardar_digitos		// Continuamos con el ciclo.
+		
+		aplicar_tdn:
+		mov r4, #0					// Contador de iteraciones.
+		mov r6, #1					// Coeficiente por el que se debe multiplicar el digito.
+		mov r7, #10					// En cada iteración el coeficiente se multiplica por 10.
+		ciclo_tdn:
+		// Ahora mediante el stack recuperamos los digitos del menos significativo hacia el más.
+			// Vemos si terminamos de acumular los 4 digitos.
+			cmp r4, #4
+			bge termina_aan
+			
+			// Recuperamos el digito.
+			pop {r5}
+			// Lo multiplicamos por su coeficiente asociado.
+			mul r5, r6
+			// Lo agregamos al acumulador de resultado.
+			add r3, r5
+			
+			// Pasamos al siguiente coeficiente.
+			mul r6, r7
+			add r4, #1
+			
+			bal ciclo_tdn
+			
+		termina_aan:
+		pop { r0, r1, r2, r4, r5, r6, r7, lr}
+		bx lr
+	.fnend
+
+	/* Realiza el proceso de pregunta-respuesta que salva al jugador. 
+	Si acierta precisamente el jugador gana, si se encuentra en un intervalo
+	la respuesta, se le otorga una vida mas
+	input: -
+	output: r7 <-- -1: incorrecto, 0: se aproximo, 1: correcto */
+	pregunta_Al_Rescate:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, lr}
+
+		//Mensaje que introduce la pregunta
+		ldr r1,=m_pregunta
+		mov r2, #T_MENSAJE_EXPLICACION
+		bl imprStr
+				
+		//Presentamos la pregunta
+		ldr r1,=pregunta_1
+		mov r2, #T_MENSAJE_PREGUNTA
+		bl imprStr 
+
+		//Guardamos la respuesta del usuario 
+		mov r7,#3
+		mov r0,#0
+		mov r2,#5
+		ldr r1,=resp_usuario
+		swi 0 
+
+		//Traemos de memoria la respuesta del usuario y la convertimos en numero
+		ldr r1,=resp_usuario
+		bl deAscii_A_Num
+
+		// Traemos la respuesta real de memoria para compararla
+		ldr r2,=respuesta_1
+	   	ldrh r2,[r2]
+
+		// Restamos los valores para comparar la diferencia más facilmente.
+		subs r3, r2
+		
+		// Si la resta dió 0 es porque acertó,
+		cmp r3, #0
+		beq correcto
+		
+		// La distancia es: abs(respuestaUsr-respuestaReal)
+		// Valor absoluto quiere decir que la resta debe estar en el intervalo:
+		// -RANGO_DE_ERROR < resta < RANGO_DE_ERROR
+		cmp r3, #-RANGO_DE_ERROR
+		blt incorrecto
+		cmp r3, #RANGO_DE_ERROR
+		bgt incorrecto
+
+		//Respuesta cumple el rango
+		enRango:
+			mov r7,#0
+			bal salir_pregunta
+
+		//Respondio correcta
+		correcto: 
+			mov r7,#1
+			bal salir_pregunta
+
+		//Respuesta incorrecta
+		incorrecto:
+			mov r7,#-1
+
+		salir_pregunta:
+		pop {r0, r1, r2, r3, r4, r5, r6, lr}
+		bx lr
+
+		.fnend
+
+
 	.global main
 	main:
+		/* Nos salteamos la preparación del juego la primera vez que se
+		ejecuta el programa (para hacer más facil el debugeo). */
+		bal INICIO_TURNO
+	
 		INICIO_JUEGO:
 			// Preparar todo para un nuevo juego.
 			bl ocultar_mapa
@@ -987,14 +1216,25 @@
 				cmp r0, #0
 				beq INICIO_TURNO
 				
-				// TERMINO EL JUEGO:
-				bl informar_resultado
-				
-				bl guardar_puntaje
-				
-				bl consultar_reinicio
+				// Si es 1, el jugador ganó y nos salteamos la pregunta.
 				cmp r0, #1
-				beq INICIO_JUEGO
+				beq fin_juego
+
+					// Como perdió, le hacemos la pregunta de rescate.
+					bl controlar_pregunta
+					// Si el resultado es 0, el jugador tiene una nueva vida así que vamos al siguiente turno.
+					cmp r0, #0
+					beq INICIO_TURNO
+				
+				// TERMINO EL JUEGO:
+				fin_juego:
+					bl informar_resultado
+					
+					bl guardar_puntaje
+					
+					bl consultar_reinicio
+					cmp r0, #1
+					beq INICIO_JUEGO
 		salir:
 			mov r7, #1
 			swi 0
