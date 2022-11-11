@@ -955,20 +955,7 @@
 		mov r1, r7
 		mov r2, #T_MENSAJE_FALLO
 		bl imprStr
-
-		//Nos fijamos si el error es por elegir la misma casilla. 
-		ldr r2,=figura_1
-		ldrb r2,[r2]
-		ldrb r3,[r3]
-		cmp r2, r3
-		bne fin_control_error
-
-		//es la misma casilla
-		mov r1, r8
-		mov r2, #T_MENSAJE_FALLO_CASILLAS
-		bl imprStr
-
-		fin_control_error:
+	
 		pop {r0, r1, r2, r3, r4, r5, r6, r7,r8, lr}
 		bx lr
 	.fnend
@@ -1221,6 +1208,36 @@
 		bx lr
 
 		.fnend
+	
+	/*Revisamos que no se haya seleccionado la misma casilla
+	input: - 
+	output: r0 <- 0: no error, 1: error
+	*/
+	control_casillas_iguales:
+	.fnstart
+		push {r0, r1, r2, r3, r4, r5, r6, lr}
+		//Nos traemos de memoria los indices de las figuras y el mensaje de error correspondiente.
+		ldr r0,=figura_1
+		ldr r1,=figura_2
+		ldr r3,=m_fallo_casillas
+		ldrb r0,[r0]
+		ldrb r1,[r1]
+		cmp r0, r1
+		beq mensajeDeError
+		mov r0,#0
+
+		mensajeDeError:
+			mov r1, r3
+			mov r2, #T_MENSAJE_FALLO_CASILLAS
+			imprStr
+			mov r0,#1
+			fin_control_casillas_iguales
+
+		fin_control_casillas_iguales:
+		bx lr
+		pop {r0, r1, r2, r3, r4, r5, r6, lr}
+	.fnend
+
 
 
 	/* ------------------------ GENERACIÓN NÚMEROS RANDOM ------------------------ */
@@ -1240,7 +1257,7 @@
 		add r0, r0, r3 @ r0= r3+ 12345
 		str r0, [ r1 ] @ guardo en variable seed
 		/* Estas dos líneas devuelven "seed > >16 & 0x7fff ".
-		Con un peque ñotruco evitamos el uso del AND */
+		Con un pequeño truco evitamos el uso del AND */
 		LSL r0, # 1
 		LSR r0, # 17
 		pop {r1, r2, r3, lr}
