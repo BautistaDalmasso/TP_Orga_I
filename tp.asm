@@ -59,6 +59,9 @@
 	// Mensajes de acierto, fallo, victoria y derrota.
 	m_acierto: .ascii "Acertaste! +5 puntos.\n"
 	.equ T_MENSAJE_ACIERTO, 22
+
+	m_casilla_ya_revelada: .ascii "Esa casilla ya fue revelada!\n"
+	.equ T_MENSAJE_DOBLE_REVELACION, 29
 	
 	m_fallo: .ascii "Fallaste. -1 punto.\n"
 	.equ T_MENSAJE_FALLO, 20
@@ -429,10 +432,39 @@
 			bx lr
 			.fnend
 
-		/* Solicita coordenada (x,y)  y obtiene el valor de cada coordenada
+		/* Solicita coordenada (x,y)  y obtiene el valor de cada coordenada.
+		También se asegura que las coordenadas seleccionadas sean válidas.
 		input= -
 		output= en r2 coordenada x , en r3 coordenada y
 		*/
+		pedirCoordenadas:
+			.fnstart
+				push {r0, r1, r4, r5, r6, r7, lr}
+				ldr r1, =m_casilla_ya_revelada
+				ldr r4, =mat_mapa
+				
+				pedir_coordenadas:
+					// Pedimos las coordenadas
+					bl pedirCoordenadaX
+					bl pedirCoordenadaY
+					
+					// Calculamos el indice al que corresponden las coordenadas.
+					bl calcNum
+					// Cargamos la casilla correspondiente en el mapa.
+					ldrb r5, [r4, r0]
+					// Nos aseguramos que no haya sido revelada todavía.
+					cmp r5, #'?'
+					beq coordenada_valida_obtenida
+						// Mostramos mensaje de casilla ya revelada:
+						mov r2, #T_MENSAJE_DOBLE_REVELACION
+						bl imprStr
+						// Pedimos coordenadas de nuevo.
+						bal pedir_coordenadas
+				
+				coordenada_valida_obtenida:
+				pop {r0, r1, r4, r5, r6, r7, lr}
+				bx lr
+			.fnend
 		pedirCoordenadaX:
 			.fnstart
 				push {r0, r1, r3, r4, r5, r6, r7, lr}
@@ -1365,8 +1397,7 @@
 			
 			/* ~~~~~~~~~~ Primera figura del ciclo ~~~~~~~~~~ */
 			// Pedimos las coordenadas:
-			bl pedirCoordenadaX
-			bl pedirCoordenadaY
+			bl pedirCoordenadas
 			
 			bl calcNum		// Calculamos el indice de la figura.
 			ldr r5, =figura_1
@@ -1376,8 +1407,7 @@
 			bl imprMapa
 			
 			/* ~~~~~~~~~~ Segunda figura del ciclo ~~~~~~~~~~ */
-			bl pedirCoordenadaX
-			bl pedirCoordenadaY
+			bl pedirCoordenadas
 			
 			
 			bl calcNum	// Calculamos el indice de la figura.
